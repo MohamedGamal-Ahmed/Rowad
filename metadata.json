@@ -1,0 +1,6 @@
+{
+  "name": "Pre-Award Tender Management System",
+  "description": "ROWAD Enterprise Platform: A modular Construction Operations Platform for Engineering, Pre-Award, Project Controls, Document Control and Executive Reporting.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

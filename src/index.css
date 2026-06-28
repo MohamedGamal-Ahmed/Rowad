@@ -1,0 +1,59 @@
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", "Cairo", ui-sans-serif, system-ui, sans-serif;
+  --font-arabic: "Cairo", sans-serif;
+  
+  --color-brand-navy: #0A1E3D;
+  --color-brand-red: #800020;
+  --color-brand-soft-red: #f1f5f9;
+  --color-brand-gray: #f8fafc;
+  --color-brand-border: #f1f5f9;
+
+  --shadow-apple: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-apple-hover: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+body {
+  background-color: var(--color-brand-gray);
+  color: #111827; /* Gray 900 */
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Base transitions for Apple-like feel */
+* {
+  transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Hide scrollbar for clean Notion-like UI */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Premium sleek scrollbar for horizontal table scrolling */
+.premium-scrollbar::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+.premium-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 9999px;
+}
+.premium-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(10, 30, 61, 0.15); /* Brand navy with low opacity */
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.premium-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(10, 30, 61, 0.35);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}

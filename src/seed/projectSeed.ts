@@ -1,0 +1,92 @@
+import { Project } from '../domain/projects/Project';
+import { RecordStatus } from '../enums/RecordStatus';
+
+export const baselineProjects: Project[] = [
+  {
+    id: "p-1",
+    recordStatus: RecordStatus.ACTIVE,
+    auditInfo: {
+      createdBy: "System",
+      createdAt: "2024-01-10T12:00:00Z"
+    },
+    code: "ZED-Z02",
+    nameEn: "ZED East - Zone 02 Infrastructure Expansion",
+    nameAr: "زيد إيست - المنطقة 02 لتوسعة البنية التحتية",
+    client: "ORA Developers",
+    employer: "ORA Developers Group",
+    consultant: "ECOGIM Engineering",
+    mainContractor: "Rowad General Contracting",
+    contractType: "Lump Sum",
+    contractValue: 1250000000,
+    currency: "EGP",
+    country: "Egypt",
+    city: "New Cairo",
+    projectManager: "Eng. Sherif Kamel",
+    coordinator: "Ahmed Mansoor",
+    department: "Infrastructure",
+    businessUnit: "Infrastructure Unit",
+    startDate: "2024-01-12",
+    completionDate: "2026-12-30",
+    status: "Active",
+    lifecycleStage: "Execution",
+    description: "Zone 02 infrastructure works for ORA's ZED East project including utility mains, structural excavation, roads, and landscape preparation."
+  },
+  {
+    id: "p-2",
+    recordStatus: RecordStatus.ACTIVE,
+    auditInfo: {
+      createdBy: "System",
+      createdAt: "2024-05-15T10:00:00Z"
+    },
+    code: "PA-2026-011",
+    nameEn: "Diriyah II - Boulevard Historical District",
+    nameAr: "الدرعية 2 - بوليفارد المنطقة التاريخية",
+    client: "Diriyah Gate Development Authority (DGDA)",
+    employer: "DGDA Executive Office",
+    consultant: "Dar Al-Handasah",
+    mainContractor: "Rowad General Contracting",
+    contractType: "Design & Build",
+    contractValue: 2450000000,
+    currency: "SAR",
+    country: "Saudi Arabia",
+    city: "Riyadh",
+    projectManager: "Eng. Abdulrahman Al-Saud",
+    coordinator: "Khaled Bin Walid",
+    department: "Executive Operations",
+    businessUnit: "Saudi Expansion Unit",
+    startDate: "2024-06-01",
+    completionDate: "2027-08-15",
+    status: "Pre-Award",
+    lifecycleStage: "Pre-Award",
+    description: "Detailed engineering design and premium restoration works of the central Diriyah boulevard sub-structures with traditional mudbrick cladding integration."
+  },
+  {
+    id: "p-3",
+    recordStatus: RecordStatus.ACTIVE,
+    auditInfo: {
+      createdBy: "System",
+      createdAt: "2023-09-01T09:00:00Z"
+    },
+    code: "EASTOWN-R3",
+    nameEn: "Eastown Residences - Phase 3 Structural Works",
+    nameAr: "إيستاون ريزيدنس - المرحلة 3 الهياكل الخرسانية",
+    client: "SODIC Developers",
+    employer: "Sixth of October Development & Investment",
+    consultant: "KEO International Consultants",
+    mainContractor: "Rowad General Contracting",
+    contractType: "Unit Rate",
+    contractValue: 850000000,
+    currency: "EGP",
+    country: "Egypt",
+    city: "New Cairo",
+    projectManager: "Eng. Tarek Lashin",
+    coordinator: "Mariam El-Fayoumy",
+    department: "Design & Engineering",
+    businessUnit: "Residential Building Unit",
+    startDate: "2023-09-10",
+    completionDate: "2026-05-20",
+    status: "Active",
+    lifecycleStage: "Execution",
+    description: "Superstructure concrete frames and blockwork partition installation for residential clusters in Phase 3 of Eastown New Cairo."
+  }
+];
