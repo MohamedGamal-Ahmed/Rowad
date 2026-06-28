@@ -287,6 +287,9 @@ Execute the following commands in the root directory:
 
 This repository is **Proprietary & Enterprise Confidential**. Unauthorized distribution, copying, or modification of these files is strictly prohibited under corporate policies.
 
+By Mohamed Gamal
+
 © 2026 ROWAD Industrial & General Contracting Group. All rights reserved.
-#   R o w a d  
+#   R o w a d 
+ 
  
