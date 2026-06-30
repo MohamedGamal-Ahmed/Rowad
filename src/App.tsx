@@ -127,6 +127,52 @@ export default function App() {
         localStorage.setItem('preaward_tenders_db', JSON.stringify(initialTenders));
       }
 
+      // Seed initial mock assignments if empty
+      const rawAssignments = localStorage.getItem('preaward_assignments_db');
+      if (!rawAssignments) {
+        const seedAssignments = [
+          // t-1
+          { assignmentId: 'asg-t1-1', tenderId: 't-1', employeeId: 'user-2', roleId: 'role-coordinator', status: 'Active', assignedDate: '2026-06-01', effectiveFrom: '2026-06-01', effectiveTo: null, notes: 'Seeded assignment', createdAt: new Date().toISOString(), createdBy: 'System', modifiedAt: new Date().toISOString(), modifiedBy: 'System', archivedAt: null, archivedBy: null, recordStatus: 'Active' },
+          { assignmentId: 'asg-t1-2', tenderId: 't-1', employeeId: 'user-1', roleId: 'role-contracts-eng', status: 'Active', assignedDate: '2026-06-01', effectiveFrom: '2026-06-01', effectiveTo: null, notes: 'Seeded assignment', createdAt: new Date().toISOString(), createdBy: 'System', modifiedAt: new Date().toISOString(), modifiedBy: 'System', archivedAt: null, archivedBy: null, recordStatus: 'Active' },
+          { assignmentId: 'asg-t1-3', tenderId: 't-1', employeeId: 'user-7', roleId: 'role-study-eng', status: 'Active', assignedDate: '2026-06-01', effectiveFrom: '2026-06-01', effectiveTo: null, notes: 'Seeded assignment', createdAt: new Date().toISOString(), createdBy: 'System', modifiedAt: new Date().toISOString(), modifiedBy: 'System', archivedAt: null, archivedBy: null, recordStatus: 'Active' },
+          // t-2
+          { assignmentId: 'asg-t2-1', tenderId: 't-2', employeeId: 'user-3', roleId: 'role-coordinator', status: 'Active', assignedDate: '2026-06-05', effectiveFrom: '2026-06-05', effectiveTo: null, notes: 'Seeded assignment', createdAt: new Date().toISOString(), createdBy: 'System', modifiedAt: new Date().toISOString(), modifiedBy: 'System', archivedAt: null, archivedBy: null, recordStatus: 'Active' },
+          { assignmentId: 'asg-t2-2', tenderId: 't-2', employeeId: 'user-13', roleId: 'role-contracts-eng', status: 'Active', assignedDate: '2026-06-05', effectiveFrom: '2026-06-05', effectiveTo: null, notes: 'Seeded assignment', createdAt: new Date().toISOString(), createdBy: 'System', modifiedAt: new Date().toISOString(), modifiedBy: 'System', archivedAt: null, archivedBy: null, recordStatus: 'Active' },
+          { assignmentId: 'asg-t2-3', tenderId: 't-2', employeeId: 'user-8', roleId: 'role-study-eng', status: 'Active', assignedDate: '2026-06-05', effectiveFrom: '2026-06-05', effectiveTo: null, notes: 'Seeded assignment', createdAt: new Date().toISOString(), createdBy: 'System', modifiedAt: new Date().toISOString(), modifiedBy: 'System', archivedAt: null, archivedBy: null, recordStatus: 'Active' },
+          // t-3
+          { assignmentId: 'asg-t3-1', tenderId: 't-3', employeeId: 'user-14', roleId: 'role-coordinator', status: 'Active', assignedDate: '2026-06-10', effectiveFrom: '2026-06-10', effectiveTo: null, notes: 'Seeded assignment', createdAt: new Date().toISOString(), createdBy: 'System', modifiedAt: new Date().toISOString(), modifiedBy: 'System', archivedAt: null, archivedBy: null, recordStatus: 'Active' },
+          { assignmentId: 'asg-t3-2', tenderId: 't-3', employeeId: 'user-5', roleId: 'role-contracts-eng', status: 'Active', assignedDate: '2026-06-10', effectiveFrom: '2026-06-10', effectiveTo: null, notes: 'Seeded assignment', createdAt: new Date().toISOString(), createdBy: 'System', modifiedAt: new Date().toISOString(), modifiedBy: 'System', archivedAt: null, archivedBy: null, recordStatus: 'Active' },
+          { assignmentId: 'asg-t3-3', tenderId: 't-3', employeeId: 'user-9', roleId: 'role-study-eng', status: 'Active', assignedDate: '2026-06-10', effectiveFrom: '2026-06-10', effectiveTo: null, notes: 'Seeded assignment', createdAt: new Date().toISOString(), createdBy: 'System', modifiedAt: new Date().toISOString(), modifiedBy: 'System', archivedAt: null, archivedBy: null, recordStatus: 'Active' },
+          // t-4
+          { assignmentId: 'asg-t4-1', tenderId: 't-4', employeeId: 'user-4', roleId: 'role-coordinator', status: 'Active', assignedDate: '2026-06-12', effectiveFrom: '2026-06-12', effectiveTo: null, notes: 'Seeded assignment', createdAt: new Date().toISOString(), createdBy: 'System', modifiedAt: new Date().toISOString(), modifiedBy: 'System', archivedAt: null, archivedBy: null, recordStatus: 'Active' },
+          { assignmentId: 'asg-t4-2', tenderId: 't-4', employeeId: 'user-6', roleId: 'role-contracts-eng', status: 'Active', assignedDate: '2026-06-12', effectiveFrom: '2026-06-12', effectiveTo: null, notes: 'Seeded assignment', createdAt: new Date().toISOString(), createdBy: 'System', modifiedAt: new Date().toISOString(), modifiedBy: 'System', archivedAt: null, archivedBy: null, recordStatus: 'Active' },
+          { assignmentId: 'asg-t4-3', tenderId: 't-4', employeeId: 'user-10', roleId: 'role-study-eng', status: 'Active', assignedDate: '2026-06-12', effectiveFrom: '2026-06-12', effectiveTo: null, notes: 'Seeded assignment', createdAt: new Date().toISOString(), createdBy: 'System', modifiedAt: new Date().toISOString(), modifiedBy: 'System', archivedAt: null, archivedBy: null, recordStatus: 'Active' },
+          // t-5
+          { assignmentId: 'asg-t5-1', tenderId: 't-5', employeeId: 'user-2', roleId: 'role-coordinator', status: 'Active', assignedDate: '2026-06-15', effectiveFrom: '2026-06-15', effectiveTo: null, notes: 'Seeded assignment', createdAt: new Date().toISOString(), createdBy: 'System', modifiedAt: new Date().toISOString(), modifiedBy: 'System', archivedAt: null, archivedBy: null, recordStatus: 'Active' },
+          { assignmentId: 'asg-t5-2', tenderId: 't-5', employeeId: 'user-1', roleId: 'role-contracts-eng', status: 'Active', assignedDate: '2026-06-15', effectiveFrom: '2026-06-15', effectiveTo: null, notes: 'Seeded assignment', createdAt: new Date().toISOString(), createdBy: 'System', modifiedAt: new Date().toISOString(), modifiedBy: 'System', archivedAt: null, archivedBy: null, recordStatus: 'Active' },
+          { assignmentId: 'asg-t5-3', tenderId: 't-5', employeeId: 'user-11', roleId: 'role-study-eng', status: 'Active', assignedDate: '2026-06-15', effectiveFrom: '2026-06-15', effectiveTo: null, notes: 'Seeded assignment', createdAt: new Date().toISOString(), createdBy: 'System', modifiedAt: new Date().toISOString(), modifiedBy: 'System', archivedAt: null, archivedBy: null, recordStatus: 'Active' },
+          // t-6
+          { assignmentId: 'asg-t6-1', tenderId: 't-6', employeeId: 'user-4', roleId: 'role-coordinator', status: 'Active', assignedDate: '2026-06-18', effectiveFrom: '2026-06-18', effectiveTo: null, notes: 'Seeded assignment', createdAt: new Date().toISOString(), createdBy: 'System', modifiedAt: new Date().toISOString(), modifiedBy: 'System', archivedAt: null, archivedBy: null, recordStatus: 'Active' },
+          { assignmentId: 'asg-t6-2', tenderId: 't-6', employeeId: 'user-3', roleId: 'role-contracts-eng', status: 'Active', assignedDate: '2026-06-18', effectiveFrom: '2026-06-18', effectiveTo: null, notes: 'Seeded assignment', createdAt: new Date().toISOString(), createdBy: 'System', modifiedAt: new Date().toISOString(), modifiedBy: 'System', archivedAt: null, archivedBy: null, recordStatus: 'Active' },
+          { assignmentId: 'asg-t6-3', tenderId: 't-6', employeeId: 'user-12', roleId: 'role-study-eng', status: 'Active', assignedDate: '2026-06-18', effectiveFrom: '2026-06-18', effectiveTo: null, notes: 'Seeded assignment', createdAt: new Date().toISOString(), createdBy: 'System', modifiedAt: new Date().toISOString(), modifiedBy: 'System', archivedAt: null, archivedBy: null, recordStatus: 'Active' }
+        ];
+        localStorage.setItem('preaward_assignments_db', JSON.stringify(seedAssignments));
+      }
+
+      // Seed initial mock business events if empty
+      const rawEvents = localStorage.getItem('preaward_business_events_db');
+      if (!rawEvents) {
+        const seedEvents = [
+          { eventId: 'event-t1-c', tenderId: 't-1', timestamp: '2026-06-01T08:00:00.000Z', userId: 'System', source: 'System', moduleId: 'Pre-Award', entityType: 'Tender', entityId: 't-1', action: 'Project Created', remarks: 'Project initialized in pre-award pipeline.' },
+          { eventId: 'event-t2-c', tenderId: 't-2', timestamp: '2026-06-05T08:00:00.000Z', userId: 'System', source: 'System', moduleId: 'Pre-Award', entityType: 'Tender', entityId: 't-2', action: 'Project Created', remarks: 'Project initialized in pre-award pipeline.' },
+          { eventId: 'event-t3-c', tenderId: 't-3', timestamp: '2026-06-10T08:00:00.000Z', userId: 'System', source: 'System', moduleId: 'Pre-Award', entityType: 'Tender', entityId: 't-3', action: 'Project Created', remarks: 'Project initialized in pre-award pipeline.' },
+          { eventId: 'event-t4-c', tenderId: 't-4', timestamp: '2026-06-12T08:00:00.000Z', userId: 'System', source: 'System', moduleId: 'Pre-Award', entityType: 'Tender', entityId: 't-4', action: 'Project Created', remarks: 'Project initialized in pre-award pipeline.' },
+          { eventId: 'event-t5-c', tenderId: 't-5', timestamp: '2026-06-15T08:00:00.000Z', userId: 'System', source: 'System', moduleId: 'Pre-Award', entityType: 'Tender', entityId: 't-5', action: 'Project Created', remarks: 'Project initialized in pre-award pipeline.' },
+          { eventId: 'event-t6-c', tenderId: 't-6', timestamp: '2026-06-18T08:00:00.000Z', userId: 'System', source: 'System', moduleId: 'Pre-Award', entityType: 'Tender', entityId: 't-6', action: 'Project Created', remarks: 'Project initialized in pre-award pipeline.' }
+        ];
+        localStorage.setItem('preaward_business_events_db', JSON.stringify(seedEvents));
+      }
+
       const service = new TenderService();
       // Solve dynamic calculated dates, days remaining, and health indicators chronologically using persistent offsets
       const legacyTenders = await service.getLegacyTenders(settings);
@@ -208,6 +254,7 @@ export default function App() {
         lang={lang} 
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={() => setIsSidebarCollapsed(prev => !prev)}
+        tendersCount={tendersList.filter(t => t.recordStatus === 'Active').length}
       />
 
       {/* Main Content Area */}

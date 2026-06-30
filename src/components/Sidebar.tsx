@@ -17,13 +17,15 @@ export function Sidebar({
   onNavigate,
   lang,
   isCollapsed,
-  onToggleCollapse
+  onToggleCollapse,
+  tendersCount = 6
 }: { 
   currentView: string; 
   onNavigate: (view: string) => void;
   lang: 'ar' | 'en';
   isCollapsed: boolean;
   onToggleCollapse: () => void;
+  tendersCount?: number;
 }) {
   const isAr = lang === 'ar';
   const CollapseIcon = isCollapsed 
@@ -42,7 +44,7 @@ export function Sidebar({
       items: [
         { icon: Calendar, label: { en: 'Operations Calendar', ar: 'التقويم التشغيلي الموحد' }, id: 'operations-center' },
         { icon: Building2, label: { en: 'Projects Portfolio', ar: 'محفظة المشاريع الكبرى' }, id: 'projects' },
-        { icon: Briefcase, label: { en: 'Pre-Award Tenders', ar: 'المناقصات الجارية' }, id: 'ongoing-tenders', badge: 6 },
+        { icon: Briefcase, label: { en: 'Pre-Award Tenders', ar: 'المناقصات الجارية' }, id: 'ongoing-tenders', badge: tendersCount },
         { icon: Folder, label: { en: 'Document Control', ar: 'مراقبة الصادر والوارد' }, id: 'document-control' }
       ]
     },
