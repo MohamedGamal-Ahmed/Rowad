@@ -12,13 +12,15 @@ interface NOCsPanelProps {
   projectId: string;
   projectCode: string;
   isProjectArchived: boolean;
+  onRefresh?: () => void;
 }
 
 export function NOCsPanel({
   lang,
   projectId,
   projectCode,
-  isProjectArchived
+  isProjectArchived,
+  onRefresh
 }: NOCsPanelProps) {
   const isAr = lang === 'ar';
   const lookupService = ProjectLookupService.getInstance();
@@ -92,6 +94,7 @@ export function NOCsPanel({
       setShowForm(false);
       resetForm();
       reloadNocs();
+      if (onRefresh) onRefresh();
     }
   };
 
@@ -171,6 +174,7 @@ export function NOCsPanel({
         `Archived NOC: ${noc.nocNumber}. Reason: ${reason}`
       );
       reloadNocs();
+      if (onRefresh) onRefresh();
     }
   };
 
@@ -195,6 +199,7 @@ export function NOCsPanel({
         `Restored NOC: ${noc.nocNumber}`
       );
       reloadNocs();
+      if (onRefresh) onRefresh();
     }
   };
 

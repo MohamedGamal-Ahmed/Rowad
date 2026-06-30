@@ -13,13 +13,15 @@ interface MeetingsPanelProps {
   projectId: string;
   projectCode: string;
   isProjectArchived: boolean;
+  onRefresh?: () => void;
 }
 
 export function MeetingsPanel({
   lang,
   projectId,
   projectCode,
-  isProjectArchived
+  isProjectArchived,
+  onRefresh
 }: MeetingsPanelProps) {
   const isAr = lang === 'ar';
   const lookupService = ProjectLookupService.getInstance();
@@ -157,6 +159,7 @@ export function MeetingsPanel({
       setShowForm(false);
       resetForm();
       reloadMeetings();
+      if (onRefresh) onRefresh();
     }
   };
 
@@ -251,6 +254,7 @@ export function MeetingsPanel({
         `Archived meeting: ${meeting.title}. Reason: ${reason}`
       );
       reloadMeetings();
+      if (onRefresh) onRefresh();
     }
   };
 
@@ -276,6 +280,7 @@ export function MeetingsPanel({
         `Restored meeting: ${meeting.title}`
       );
       reloadMeetings();
+      if (onRefresh) onRefresh();
     }
   };
 

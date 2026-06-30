@@ -12,13 +12,15 @@ interface VOsPanelProps {
   projectId: string;
   projectCode: string;
   isProjectArchived: boolean;
+  onRefresh?: () => void;
 }
 
 export function VOsPanel({
   lang,
   projectId,
   projectCode,
-  isProjectArchived
+  isProjectArchived,
+  onRefresh
 }: VOsPanelProps) {
   const isAr = lang === 'ar';
   const lookupService = ProjectLookupService.getInstance();
@@ -110,6 +112,7 @@ export function VOsPanel({
       setShowForm(false);
       resetForm();
       reloadVos();
+      if (onRefresh) onRefresh();
     }
   };
 
@@ -233,6 +236,7 @@ export function VOsPanel({
         `Archived VO: ${vo.voNumber}. Reason: ${reason}`
       );
       reloadVos();
+      if (onRefresh) onRefresh();
     }
   };
 
@@ -257,6 +261,7 @@ export function VOsPanel({
         `Restored VO: ${vo.voNumber}`
       );
       reloadVos();
+      if (onRefresh) onRefresh();
     }
   };
 

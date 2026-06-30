@@ -12,6 +12,7 @@ interface ClaimsPanelProps {
   projectId: string;
   projectCode: string;
   isProjectArchived: boolean;
+  onRefresh?: () => void;
 }
 
 // Validator for Claim State Machine (Zero Business Logic in Views Rule)
@@ -47,7 +48,8 @@ export function ClaimsPanel({
   lang,
   projectId,
   projectCode,
-  isProjectArchived
+  isProjectArchived,
+  onRefresh
 }: ClaimsPanelProps) {
   const isAr = lang === 'ar';
   const lookupService = ProjectLookupService.getInstance();
@@ -152,6 +154,7 @@ export function ClaimsPanel({
       setShowForm(false);
       resetForm();
       reloadClaims();
+      if (onRefresh) onRefresh();
     }
   };
 
@@ -279,6 +282,7 @@ export function ClaimsPanel({
         `Archived claim: ${claim.claimNumber}. Reason: ${reason}`
       );
       reloadClaims();
+      if (onRefresh) onRefresh();
     }
   };
 
@@ -303,6 +307,7 @@ export function ClaimsPanel({
         `Restored claim: ${claim.claimNumber}`
       );
       reloadClaims();
+      if (onRefresh) onRefresh();
     }
   };
 

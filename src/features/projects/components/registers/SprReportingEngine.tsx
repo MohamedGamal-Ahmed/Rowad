@@ -56,15 +56,19 @@ export function SprReportingEngine({
   const monthlyData = useMemo(() => {
     const monthStr = selectedMonth; // e.g. "2026-06"
     
-    const filteredMeetings = meetings.filter(m => m.date.startsWith(monthStr));
-    const filteredIpcs = ipcs.filter(i => i.ipcSubmissionDate?.startsWith(monthStr));
-    const filteredClaims = claims.filter(c => c.submissionDate?.startsWith(monthStr));
-    const filteredVos = vos.filter(v => 
-      v.employerInstruction.date?.startsWith(monthStr) || 
-      v.commercialOffer.commercialDate?.startsWith(monthStr) ||
-      v.approval?.approvalDate?.startsWith(monthStr)
-    );
-    const filteredDocs = documents.filter(d => d.dateReceived?.startsWith(monthStr));
+    const filteredMeetings = (meetings || []).filter(m => m && typeof m.date === 'string' && m.date.startsWith(monthStr));
+    const filteredIpcs = (ipcs || []).filter(i => i && typeof i.ipcSubmissionDate === 'string' && i.ipcSubmissionDate.startsWith(monthStr));
+    const filteredClaims = (claims || []).filter(c => c && typeof c.submissionDate === 'string' && c.submissionDate.startsWith(monthStr));
+    const filteredVos = (vos || []).filter(v => {
+      if (!v) return false;
+      const empDate = v.employerInstruction?.date;
+      const commDate = v.commercialOffer?.commercialDate;
+      const appDate = v.approval?.approvalDate;
+      return (typeof empDate === 'string' && empDate.startsWith(monthStr)) ||
+             (typeof commDate === 'string' && commDate.startsWith(monthStr)) ||
+             (typeof appDate === 'string' && appDate.startsWith(monthStr));
+    });
+    const filteredDocs = (documents || []).filter(d => d && typeof d.dateReceived === 'string' && d.dateReceived.startsWith(monthStr));
 
     // Calculate aggregated financials
     const totalSubmittedIpcVal = filteredIpcs.reduce((acc, i) => acc + (i.invoiceGrossValue || 0), 0);

@@ -13,13 +13,15 @@ interface IPCsPanelProps {
   projectId: string;
   projectCode: string;
   isProjectArchived: boolean;
+  onRefresh?: () => void;
 }
 
 export function IPCsPanel({
   lang,
   projectId,
   projectCode,
-  isProjectArchived
+  isProjectArchived,
+  onRefresh
 }: IPCsPanelProps) {
   const isAr = lang === 'ar';
   const lookupService = ProjectLookupService.getInstance();
@@ -107,6 +109,7 @@ export function IPCsPanel({
       setShowForm(false);
       resetForm();
       reloadIpcs();
+      if (onRefresh) onRefresh();
     }
   };
 
@@ -237,6 +240,7 @@ export function IPCsPanel({
         `Archived IPC: ${ipc.ipcNumber}. Reason: ${reason}`
       );
       reloadIpcs();
+      if (onRefresh) onRefresh();
     }
   };
 
@@ -261,6 +265,7 @@ export function IPCsPanel({
         `Restored IPC: ${ipc.ipcNumber}`
       );
       reloadIpcs();
+      if (onRefresh) onRefresh();
     }
   };
 

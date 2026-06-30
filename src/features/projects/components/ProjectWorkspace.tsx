@@ -712,6 +712,7 @@ export function ProjectWorkspace({
             projectId={project.id}
             projectCode={project.code}
             isProjectArchived={project.recordStatus === 'Archived'}
+            onRefresh={reloadAllProjectData}
           />
         )}
 
@@ -722,6 +723,7 @@ export function ProjectWorkspace({
             projectId={project.id}
             projectCode={project.code}
             isProjectArchived={project.recordStatus === 'Archived'}
+            onRefresh={reloadAllProjectData}
           />
         )}
 
@@ -732,6 +734,7 @@ export function ProjectWorkspace({
             projectId={project.id}
             projectCode={project.code}
             isProjectArchived={project.recordStatus === 'Archived'}
+            onRefresh={reloadAllProjectData}
           />
         )}
 
@@ -742,6 +745,7 @@ export function ProjectWorkspace({
             projectId={project.id}
             projectCode={project.code}
             isProjectArchived={project.recordStatus === 'Archived'}
+            onRefresh={reloadAllProjectData}
           />
         )}
 
@@ -752,6 +756,7 @@ export function ProjectWorkspace({
             projectId={project.id}
             projectCode={project.code}
             isProjectArchived={project.recordStatus === 'Archived'}
+            onRefresh={reloadAllProjectData}
           />
         )}
 
