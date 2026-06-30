@@ -1,6 +1,6 @@
-# ROWAD Enterprise Platform — Claude Memory
+# ROWAD Enterprise Platform — Codex Memory
 
-This file is Claude's persistent knowledge base for the ROWAD project. Read it on every session before doing any work.
+This file is Codex's persistent knowledge base for the ROWAD project. Read it on every session before doing any work.
 
 ---
 
@@ -453,7 +453,7 @@ Living docs that are the source of truth for architecture/business rules:
 
 ---
 
-## 17. Rules of Engagement for Claude
+## 17. Rules of Engagement for Codex
 
 When working on ROWAD:
 

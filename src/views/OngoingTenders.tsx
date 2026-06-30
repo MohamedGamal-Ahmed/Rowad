@@ -78,6 +78,8 @@ export function OngoingTenders({
     handleAddDocToTender,
     handleBulkArchive,
     handleBulkExport,
+    handleAwardTender,
+    handleStatusTransition,
     handleDrag,
     handleDrop,
     triggerAnalysis,
@@ -420,6 +422,8 @@ export function OngoingTenders({
               onAddDoc={handleAddDocToTender}
               onShowAlert={msg => setToastAlert({ type: 'info', message: msg })}
               onUpdateTender={(updated) => onUpdateList(prev => prev.map(t => t.id === updated.id ? updated : t))}
+              onAwardTender={handleAwardTender}
+              onStatusTransition={handleStatusTransition}
             />
           </div>
         )}

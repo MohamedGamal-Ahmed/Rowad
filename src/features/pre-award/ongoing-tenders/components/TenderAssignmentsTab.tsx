@@ -13,6 +13,7 @@ interface TenderAssignmentsTabProps {
   lang: 'ar' | 'en';
   onUpdateTender?: (updated: Tender) => void;
   onShowAlert: (msg: string) => void;
+  readOnly?: boolean;
 }
 
 export function TenderAssignmentsTab({
@@ -21,6 +22,7 @@ export function TenderAssignmentsTab({
   lang,
   onUpdateTender,
   onShowAlert,
+  readOnly = false,
 }: TenderAssignmentsTabProps) {
   const assignmentRepo = useMemo(() => new AssignmentRepository(), []);
   const eventRepo = useMemo(() => new BusinessEventRepository(), []);
@@ -143,6 +145,10 @@ export function TenderAssignmentsTab({
 
   // Open Form modal for Add
   const handleOpenAdd = () => {
+    if (readOnly) {
+      onShowAlert(isAr ? 'لا يمكن تعديل مناقصة تمت ترسيتها.' : 'Awarded tenders are read-only.');
+      return;
+    }
     setEditingAssignment(null);
     setFormRoleId(roles[0]?.id || '');
     setFormEmployeeId(employees[0]?.id || '');
@@ -155,6 +161,10 @@ export function TenderAssignmentsTab({
 
   // Open Form modal for Edit
   const handleOpenEdit = (asg: TenderAssignment) => {
+    if (readOnly) {
+      onShowAlert(isAr ? 'لا يمكن تعديل مناقصة تمت ترسيتها.' : 'Awarded tenders are read-only.');
+      return;
+    }
     setEditingAssignment(asg);
     setFormRoleId(asg.roleId);
     setFormEmployeeId(asg.employeeId);
@@ -168,6 +178,12 @@ export function TenderAssignmentsTab({
   // Save Assignment (Create or Update)
   const handleSaveAssignment = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (readOnly) {
+      onShowAlert(isAr ? 'لا يمكن تعديل مناقصة تمت ترسيتها.' : 'Awarded tenders are read-only.');
+      setShowFormModal(false);
+      return;
+    }
 
     if (!formRoleId || !formEmployeeId) {
       onShowAlert(isAr ? 'الرجاء اختيار الدور والموظف.' : 'Please select Role and Employee.');
@@ -251,6 +267,10 @@ export function TenderAssignmentsTab({
 
   // Archive Assignment
   const handleArchive = async (asg: TenderAssignment) => {
+    if (readOnly) {
+      onShowAlert(isAr ? 'لا يمكن تعديل مناقصة تمت ترسيتها.' : 'Awarded tenders are read-only.');
+      return;
+    }
     const today = new Date().toISOString();
     const currentUser = lang === 'en' ? 'Ahmed Mostafa' : 'أحمد مصطفى';
 
@@ -282,6 +302,10 @@ export function TenderAssignmentsTab({
 
   // Restore Assignment
   const handleRestore = async (asg: TenderAssignment) => {
+    if (readOnly) {
+      onShowAlert(isAr ? 'لا يمكن تعديل مناقصة تمت ترسيتها.' : 'Awarded tenders are read-only.');
+      return;
+    }
     const today = new Date().toISOString();
     const currentUser = lang === 'en' ? 'Ahmed Mostafa' : 'أحمد مصطفى';
 
@@ -425,7 +449,8 @@ export function TenderAssignmentsTab({
           {/* Add Assignment Trigger Button */}
           <button
             onClick={handleOpenAdd}
-            className="flex items-center gap-1.5 px-4 py-2 bg-brand-navy hover:bg-brand-navy/90 text-white rounded-xl text-xs font-bold transition-all shadow-sm shrink-0 cursor-pointer"
+            disabled={readOnly}
+            className="flex items-center gap-1.5 px-4 py-2 bg-brand-navy hover:bg-brand-navy/90 text-white rounded-xl text-xs font-bold transition-all shadow-sm shrink-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus className="w-4 h-4" />
             <span>{isAr ? 'إضافة تكليف' : 'Add Assignment'}</span>

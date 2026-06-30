@@ -21,6 +21,8 @@ import { TenderFinancialTab } from './TenderFinancialTab';
 import { TenderMilestonesTab } from './TenderMilestonesTab';
 import { TenderAssignmentsTab } from './TenderAssignmentsTab';
 import { FinancialsCalculator } from '../../../../business-rules/FinancialsCalculator';
+import { TenderAwardService } from '../../../../services/TenderAwardService';
+import { WorkflowStatus } from '../../../../enums/WorkflowStatus';
 
 interface TenderDetailsDrawerProps {
   selectedTender: Tender | null;
@@ -39,6 +41,8 @@ interface TenderDetailsDrawerProps {
   onAddDoc: (id: string) => void;
   onShowAlert: (msg: string) => void;
   onUpdateTender?: (updated: Tender) => void;
+  onAwardTender?: (tender: Tender) => void;
+  onStatusTransition?: (tenderId: string, newStatus: WorkflowStatus) => void;
 }
 
 export function TenderDetailsDrawer({
@@ -58,6 +62,8 @@ export function TenderDetailsDrawer({
   onAddDoc,
   onShowAlert,
   onUpdateTender,
+  onAwardTender,
+  onStatusTransition,
 }: TenderDetailsDrawerProps) {
   if (!selectedTender) {
     return (
@@ -78,6 +84,12 @@ export function TenderDetailsDrawer({
   const parseValue = (valStr: string): number => {
     return FinancialsCalculator.parseToNumber(valStr);
   };
+
+  const [showAwardWizard, setShowAwardWizard] = React.useState(false);
+  const isReadOnly = React.useMemo(
+    () => new TenderAwardService().isTenderReadOnly(selectedTender),
+    [selectedTender.awardedProjectId, selectedTender.awardStatus, selectedTender.projectStatus]
+  );
 
   return (
     <div className="bg-white rounded-[32px] border border-gray-150 shadow-xl p-7 space-y-6 xl:sticky xl:top-4 overflow-y-auto max-h-[85vh] premium-scrollbar">
@@ -114,6 +126,76 @@ export function TenderDetailsDrawer({
           <X className="w-5 h-5" />
         </button>
       </div>
+
+      {/* Award conversion confirmation wizard */}
+      {showAwardWizard && (
+        <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-slate-100 shadow-2xl max-w-lg w-full p-6 space-y-5 animate-in zoom-in-95 duration-150">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-4">
+              <div>
+                <span className="text-[10px] font-black uppercase text-brand-red tracking-wider">
+                  {isAr ? 'معالج الترسية' : 'Award Wizard'}
+                </span>
+                <h4 className="text-lg font-black text-brand-navy mt-1">
+                  {isAr ? 'تحويل المناقصة إلى مشروع' : 'Convert Tender to Project'}
+                </h4>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAwardWizard(false)}
+                className="p-2 bg-slate-50 hover:bg-slate-100 text-slate-400 rounded-xl cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                <span className="block text-[9px] font-black text-slate-400 uppercase">{isAr ? 'كود المشروع' : 'Project Code'}</span>
+                <strong className="text-brand-navy font-mono">{selectedTender.projectCode}</strong>
+              </div>
+              <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                <span className="block text-[9px] font-black text-slate-400 uppercase">{isAr ? 'قيمة العقد' : 'Contract Value'}</span>
+                <strong className="text-brand-navy">{selectedTender.estimatedValue}</strong>
+              </div>
+              <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                <span className="block text-[9px] font-black text-slate-400 uppercase">{isAr ? 'العميل' : 'Client'}</span>
+                <strong className="text-brand-navy">{isAr ? selectedTender.clientName.ar : selectedTender.clientName.en}</strong>
+              </div>
+              <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                <span className="block text-[9px] font-black text-slate-400 uppercase">{isAr ? 'الاستشاري' : 'Consultant'}</span>
+                <strong className="text-brand-navy">{selectedTender.consultant ? (isAr ? selectedTender.consultant.ar : selectedTender.consultant.en) : 'N/A'}</strong>
+              </div>
+            </div>
+
+            <div className="bg-amber-50 border border-amber-100 rounded-2xl p-3 text-[11px] font-semibold text-amber-800 leading-relaxed">
+              {isAr
+                ? 'بعد التأكيد سيتم إنشاء سجل مشروع مرتبط، نقل مستندات المناقصة كسجل مرفقات، وتصبح المناقصة للقراءة فقط.'
+                : 'Confirming creates the linked Project record, transfers tender documents as attachments, and locks the Tender as read-only.'}
+            </div>
+
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setShowAwardWizard(false)}
+                className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold cursor-pointer"
+              >
+                {isAr ? 'إلغاء' : 'Cancel'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAwardWizard(false);
+                  onAwardTender?.(selectedTender);
+                }}
+                className="px-5 py-2.5 bg-brand-red hover:bg-brand-red/90 text-white rounded-xl text-xs font-black cursor-pointer"
+              >
+                {isAr ? 'تأكيد الترسية' : 'Confirm Award'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Sub-Header Tabs Row - horizontal scrolling */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-2 border-b border-gray-100 premium-scrollbar -mx-2 px-2">
@@ -152,13 +234,9 @@ export function TenderDetailsDrawer({
         <TenderOverviewTab
           selectedTender={selectedTender}
           isAr={isAr}
-          onTransitionClick={() =>
-            onShowAlert(
-              isAr
-                ? 'نقطة تحول معمارية: سيتم دمج هذه المزايدة وتوليد كشوفات السداد وبنود القياس للتشغيل تلقائياً.'
-                : 'Architecture Extension Point: Core transition services prepared for automated contract instantiation.'
-            )
-          }
+          isReadOnly={isReadOnly}
+          onTransitionClick={() => setShowAwardWizard(true)}
+          onStatusTransition={onStatusTransition}
         />
       )}
 
@@ -170,6 +248,7 @@ export function TenderDetailsDrawer({
           lang={lang}
           onUpdateTender={onUpdateTender}
           onShowAlert={onShowAlert}
+          readOnly={isReadOnly}
         />
       )}
 
@@ -185,6 +264,7 @@ export function TenderDetailsDrawer({
           isAr={isAr}
           onUpdateTender={onUpdateTender || (() => {})}
           onShowAlert={onShowAlert}
+          readOnly={isReadOnly}
         />
       )}
 
@@ -242,17 +322,19 @@ export function TenderDetailsDrawer({
           <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 space-y-2 mt-2">
             <span className="text-[10px] text-gray-400 font-bold uppercase block">{isAr ? 'تسجيل مستند فني أو مراسلة جديدة' : 'Attach New Tender Document'}</span>
             <input
+              disabled={isReadOnly}
               type="text"
               value={newDocName}
               onChange={e => setNewDocName(e.target.value)}
               placeholder={isAr ? 'اسم الملف (مثال: جدول الكميات المحدث)' : 'Enter document name (e.g. Approved BOQ)'}
-              className="w-full bg-white border border-gray-200 rounded-xl p-2.5 text-xs focus:outline-none focus:border-brand-navy transition-all"
+              className="w-full bg-white border border-gray-200 rounded-xl p-2.5 text-xs focus:outline-none focus:border-brand-navy transition-all disabled:bg-gray-100 disabled:text-gray-400"
             />
             <div className="flex gap-2">
               <select
+                disabled={isReadOnly}
                 value={newDocSize}
                 onChange={e => setNewDocSize(e.target.value)}
-                className="bg-white border border-gray-200 rounded-xl p-2 text-xs focus:outline-none text-gray-500 w-24 shrink-0 font-bold"
+                className="bg-white border border-gray-200 rounded-xl p-2 text-xs focus:outline-none text-gray-500 w-24 shrink-0 font-bold disabled:bg-gray-100 disabled:text-gray-400"
               >
                 <option value="1.2 MB">1.2 MB</option>
                 <option value="2.4 MB">2.4 MB</option>
@@ -262,7 +344,8 @@ export function TenderDetailsDrawer({
               <button
                 type="button"
                 onClick={() => onAddDoc(selectedTender.id)}
-                className="flex-1 bg-brand-navy hover:bg-brand-navy/90 text-white rounded-xl text-xs font-bold transition-all py-2 cursor-pointer text-center"
+                disabled={isReadOnly}
+                className="flex-1 bg-brand-navy hover:bg-brand-navy/90 text-white rounded-xl text-xs font-bold transition-all py-2 cursor-pointer text-center disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isAr ? 'إرفاق وتوثيق الملف' : 'Register Tender File'}
               </button>
@@ -301,11 +384,12 @@ export function TenderDetailsDrawer({
           {/* Add note inside panel */}
           <div className="flex gap-2 pt-2 border-t border-gray-100 mt-2 font-sans">
             <input
+              disabled={isReadOnly}
               type="text"
               value={newNoteText}
               onChange={e => setNewNoteText(e.target.value)}
               placeholder={isAr ? 'اكتب ملاحظة كلفة أو عقود جديدة...' : 'Type custom estimative comment...'}
-              className="flex-1 bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs focus:outline-none focus:border-brand-navy focus:bg-white transition-all shadow-inner"
+              className="flex-1 bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs focus:outline-none focus:border-brand-navy focus:bg-white transition-all shadow-inner disabled:bg-gray-100 disabled:text-gray-400"
               onKeyDown={e => {
                 if (e.key === 'Enter') onAddNote(selectedTender.id);
               }}
@@ -313,7 +397,8 @@ export function TenderDetailsDrawer({
             <button
               type="button"
               onClick={() => onAddNote(selectedTender.id)}
-              className="p-3 bg-brand-navy hover:bg-brand-navy/90 text-white rounded-xl transition-all cursor-pointer shadow-sm shrink-0"
+              disabled={isReadOnly}
+              className="p-3 bg-brand-navy hover:bg-brand-navy/90 text-white rounded-xl transition-all cursor-pointer shadow-sm shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Send className="w-4 h-4" />
             </button>

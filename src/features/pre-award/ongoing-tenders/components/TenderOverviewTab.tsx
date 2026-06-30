@@ -1,14 +1,28 @@
 import React from 'react';
-import { MapPin } from 'lucide-react';
+import { MapPin, ChevronDown } from 'lucide-react';
 import { Tender } from '../types';
+import { TenderLifecycleValidator } from '../../../../business-rules/TenderLifecycleValidator';
+import { TenderService } from '../../../../services/TenderService';
+import { WorkflowStatus } from '../../../../enums/WorkflowStatus';
 
 interface TenderOverviewTabProps {
   selectedTender: Tender;
   isAr: boolean;
+  isReadOnly: boolean;
   onTransitionClick: () => void;
+  onStatusTransition?: (tenderId: string, newStatus: WorkflowStatus) => void;
 }
 
-export function TenderOverviewTab({ selectedTender, isAr, onTransitionClick }: TenderOverviewTabProps) {
+export function TenderOverviewTab({ selectedTender, isAr, isReadOnly, onTransitionClick, onStatusTransition }: TenderOverviewTabProps) {
+  const allowedNextStates = TenderLifecycleValidator.getAllowedNextStates(selectedTender.workflowStatus);
+  const canTransition = !isReadOnly && allowedNextStates.length > 0;
+
+  const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newStatus = e.target.value as WorkflowStatus;
+    if (newStatus && newStatus !== selectedTender.workflowStatus) {
+      onStatusTransition?.(selectedTender.id, newStatus);
+    }
+  };
   return (
     <div className="space-y-5 animate-in fade-in duration-200">
       <div className="space-y-1 bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
@@ -42,7 +56,24 @@ export function TenderOverviewTab({ selectedTender, isAr, onTransitionClick }: T
         <div className="space-y-2 text-[13px] font-bold font-sans">
           <div className="flex justify-between items-center bg-white p-2 rounded-lg border border-gray-50">
             <span className="text-gray-400 text-xs font-semibold">{isAr ? 'حالة المزايدة (Pre-Award)' : 'Pre-Award State'}</span>
-            <span className="text-brand-navy text-[12px] font-extrabold">{isAr ? selectedTender.projectStatus.ar : selectedTender.projectStatus.en}</span>
+            {canTransition ? (
+              <select
+                value={selectedTender.workflowStatus}
+                onChange={handleStatusChange}
+                className="text-brand-navy text-[12px] font-extrabold bg-transparent border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:border-brand-navy cursor-pointer"
+              >
+                <option value={selectedTender.workflowStatus} disabled>
+                  {isAr ? selectedTender.projectStatus.ar : selectedTender.projectStatus.en}
+                </option>
+                {allowedNextStates.map(state => (
+                  <option key={state} value={state}>
+                    {TenderService.getStatusLabels(state).projectStatus[isAr ? 'ar' : 'en']}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <span className="text-brand-navy text-[12px] font-extrabold">{isAr ? selectedTender.projectStatus.ar : selectedTender.projectStatus.en}</span>
+            )}
           </div>
           <div className="flex justify-between items-center bg-white p-2 rounded-lg border border-gray-50">
             <span className="text-gray-400 text-xs font-semibold">{isAr ? 'حالة الترسية' : 'Award Standing'}</span>
@@ -74,9 +105,10 @@ export function TenderOverviewTab({ selectedTender, isAr, onTransitionClick }: T
           </div>
           <button
             onClick={onTransitionClick}
-            className="px-3 py-2 bg-brand-red text-white text-[11px] font-black rounded-xl hover:bg-brand-red/90 transition-all cursor-pointer shadow-sm shadow-brand-red/20 shrink-0"
+            disabled={isReadOnly}
+            className="px-3 py-2 bg-brand-red text-white text-[11px] font-black rounded-xl hover:bg-brand-red/90 transition-all cursor-pointer shadow-sm shadow-brand-red/20 shrink-0 disabled:bg-emerald-600 disabled:cursor-not-allowed disabled:shadow-none"
           >
-            {isAr ? 'بدء الترحيل' : 'Convert'}
+            {isReadOnly ? (isAr ? 'تمت الترسية' : 'Awarded') : (isAr ? 'بدء الترحيل' : 'Convert')}
           </button>
         </div>
       </div>

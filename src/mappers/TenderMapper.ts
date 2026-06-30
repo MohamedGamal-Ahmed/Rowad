@@ -16,6 +16,8 @@ export interface LegacyTender {
   id: string;
   projectCode: string;
   tenderNumber: string;
+  awardedProjectId?: string;
+  awardedAt?: string;
   projectName: { en: string; ar: string };
   location: { en: string; ar: string };
   coordinator: { en: string; ar: string };
@@ -34,6 +36,7 @@ export interface LegacyTender {
   contractQualsDueDate?: string;
   projectStatus: { en: string; ar: string };
   awardStatus: { en: string; ar: string };
+  workflowStatus: string;
   recordStatus: 'Active' | 'Under Review' | 'Archived' | 'On Hold';
   daysRemaining: number;
   health: 'Healthy' | 'Due Soon' | 'Overdue' | 'Archived';
@@ -125,6 +128,8 @@ export class TenderMapper {
       recordStatus: mappedRecordStatus,
       projectCode: legacy.projectCode,
       tenderNumber: legacy.tenderNumber,
+      awardedProjectId: legacy.awardedProjectId,
+      awardedAt: legacy.awardedAt,
       projectName: legacy.projectName,
       general: {
         location: legacy.location,
@@ -289,6 +294,8 @@ export class TenderMapper {
       id: domain.id,
       projectCode: domain.projectCode,
       tenderNumber: domain.tenderNumber,
+      awardedProjectId: domain.awardedProjectId,
+      awardedAt: domain.awardedAt,
       projectName: domain.projectName,
       location: domain.general.location,
       coordinator, // TODO: Remove after Backend Migration
@@ -307,6 +314,7 @@ export class TenderMapper {
       contractQualsDueDate: domain.timeline.calculated.contractQualsDueDate,
       projectStatus: domain.status.projectStatus,
       awardStatus: domain.status.awardStatus,
+      workflowStatus: domain.status.workflowStatus,
       recordStatus: recStatus,
       daysRemaining: isNaN(daysRemaining) ? 0 : daysRemaining,
       health: healthStr,

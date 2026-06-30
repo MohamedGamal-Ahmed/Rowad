@@ -1,6 +1,7 @@
 import { Tender } from '../domain/pre-award/Tender';
 import { TenderRepository } from '../repositories/TenderRepository';
 import { TenderValidator } from '../validators/TenderValidator';
+import { TenderLifecycleValidator } from '../business-rules/TenderLifecycleValidator';
 import { TimelineCalculator } from '../business-rules/TimelineCalculator';
 import { HealthCalculator } from '../business-rules/HealthCalculator';
 import { Settings } from '../domain/administration/Settings';
@@ -11,6 +12,8 @@ import { Clock } from './Clock';
 import { MilestoneService } from './MilestoneService';
 import { DEFAULT_MILESTONE_TEMPLATES } from '../constants/MilestoneTemplates';
 import { RecordStatus } from '../enums/RecordStatus';
+import { WorkflowStatus } from '../enums/WorkflowStatus';
+import { BusinessEventRepository } from '../repositories/BusinessEventRepository';
 
 export class TenderService {
   private repository: TenderRepository;
@@ -126,5 +129,107 @@ export class TenderService {
       alignmentOffset: AppConstants.OFFSETS.DEFAULT_ALIGNMENT,
       intermediateFollowUpOffset: AppConstants.OFFSETS.DEFAULT_FOLLOW_UP
     };
+  }
+
+  public static getStatusLabels(status: WorkflowStatus): { projectStatus: { en: string; ar: string }; awardStatus: { en: string; ar: string } } {
+    switch (status) {
+      case WorkflowStatus.DRAFT:
+        return {
+          projectStatus: { en: 'Draft', ar: 'مسودة' },
+          awardStatus: { en: 'Not Started', ar: 'لم يبدأ' }
+        };
+      case WorkflowStatus.UNDER_STUDY:
+        return {
+          projectStatus: { en: 'Active Study', ar: 'تحت الدراسة والتقدير' },
+          awardStatus: { en: 'Pending Submission', ar: 'قيد تجهيز المغلفات' }
+        };
+      case WorkflowStatus.READY_FOR_SUBMISSION:
+        return {
+          projectStatus: { en: 'Ready for Submission', ar: 'جاهز للتقديم' },
+          awardStatus: { en: 'Pending Submission', ar: 'قيد تجهيز المغلفات' }
+        };
+      case WorkflowStatus.SUBMITTED:
+        return {
+          projectStatus: { en: 'Submitted', ar: 'تم التقديم' },
+          awardStatus: { en: 'Under Review', ar: 'قيد المراجعة' }
+        };
+      case WorkflowStatus.UNDER_NEGOTIATION:
+        return {
+          projectStatus: { en: 'Under Negotiation', ar: 'قيد التفاوض' },
+          awardStatus: { en: 'Under Negotiation', ar: 'قيد التفاوض' }
+        };
+      case WorkflowStatus.AWARDED:
+        return {
+          projectStatus: { en: 'Awarded', ar: 'تمت الترسية' },
+          awardStatus: { en: 'Awarded to ROWAD', ar: 'تمت الترسية إلى رواد' }
+        };
+      case WorkflowStatus.LOST:
+        return {
+          projectStatus: { en: 'Lost', ar: 'خسارة' },
+          awardStatus: { en: 'Lost', ar: 'خسارة' }
+        };
+      case WorkflowStatus.CANCELLED:
+        return {
+          projectStatus: { en: 'Cancelled', ar: 'ملغي' },
+          awardStatus: { en: 'Cancelled', ar: 'ملغي' }
+        };
+    }
+  }
+
+  public async transitionTenderStatus(
+    tenderId: string,
+    newStatus: WorkflowStatus,
+    userId: string
+  ): Promise<{ success: boolean; errors: string[]; updatedTender?: LegacyTender }> {
+    const domainTenders = await this.repository.getAll();
+    const domainTender = domainTenders.find(t => t.id === tenderId);
+
+    if (!domainTender) {
+      return { success: false, errors: ['Tender not found.'] };
+    }
+
+    const oldStatus = domainTender.status.workflowStatus;
+
+    if (!TenderLifecycleValidator.isTransitionAllowed(oldStatus, newStatus)) {
+      return {
+        success: false,
+        errors: [`Transition from ${oldStatus} to ${newStatus} is not allowed.`]
+      };
+    }
+
+    const labels = TenderService.getStatusLabels(newStatus);
+
+    domainTender.status = {
+      ...domainTender.status,
+      workflowStatus: newStatus,
+      projectStatus: labels.projectStatus,
+      awardStatus: labels.awardStatus,
+    };
+
+    const saved = await this.repository.save(domainTender);
+    if (!saved) {
+      return { success: false, errors: ['Failed to persist tender status transition.'] };
+    }
+
+    const updatedLegacy = TenderMapper.toLegacy(domainTender);
+
+    const eventRepo = new BusinessEventRepository();
+    await eventRepo.logEvent({
+      eventId: `event-status-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`,
+      tenderId: domainTender.id,
+      timestamp: new Date().toISOString(),
+      userId,
+      source: 'User',
+      moduleId: 'Pre-Award',
+      entityType: 'Tender',
+      entityId: domainTender.id,
+      action: 'Status Transitioned',
+      changedFields: ['workflowStatus', 'projectStatus', 'awardStatus'],
+      oldValue: oldStatus,
+      newValue: newStatus,
+      remarks: `Status changed from ${oldStatus} to ${newStatus}.`
+    });
+
+    return { success: true, errors: [], updatedTender: updatedLegacy };
   }
 }

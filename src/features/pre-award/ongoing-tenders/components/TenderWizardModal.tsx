@@ -15,6 +15,7 @@ import { NumberingService } from '../../../../services/NumberingService';
 import { Clock } from '../../../../services/Clock';
 import { HealthCalculator } from '../../../../business-rules/HealthCalculator';
 import { HealthStatus } from '../../../../enums/HealthStatus';
+import { WorkflowStatus } from '../../../../enums/WorkflowStatus';
 import { BusinessEventRepository } from '../../../../repositories/BusinessEventRepository';
 
 interface TenderWizardModalProps {
@@ -80,6 +81,7 @@ const getInitialWizardState = (settings: Settings, listLength: number): WizardFo
     siteVisitRequired: false,
     siteVisitDate: '',
 
+    financialNotes: '',
     overriddenFields: {},
   };
 };
@@ -310,6 +312,7 @@ export function TenderWizardModal({
       contractQualsDueDate: wizardForm.contractQualsDueDate,
       projectStatus: { en: 'Active Study', ar: 'تحت الدراسة والتقدير' },
       awardStatus: { en: 'Pending Submission', ar: 'قيد تجهيز المغلفات' },
+      workflowStatus: WorkflowStatus.UNDER_STUDY,
       recordStatus: 'Active',
       daysRemaining: calculatedDaysRemaining,
       health: healthStr,
@@ -414,7 +417,7 @@ export function TenderWizardModal({
               { step: 1, id: 'general', labelEn: 'General', labelAr: 'البيانات العامة' },
               { step: 2, id: 'assignments', labelEn: 'Assignments', labelAr: 'التكليفات' },
               { step: 3, id: 'timeline', labelEn: 'Timeline', labelAr: 'الجدول الزمني' },
-              { step: 4, id: 'financial', labelEn: 'Financial', labelAr: 'المالية والمستندات' },
+              { step: 4, id: 'financial', labelEn: 'Financial Review', labelAr: 'المراجعة المالية' },
               { step: 5, id: 'review', labelEn: 'Review & Submission', labelAr: 'المراجعة والاعتماد' },
             ].map(s => {
               const isActive = wizardStep === s.step;
@@ -884,11 +887,113 @@ export function TenderWizardModal({
               </div>
             )}
 
-            {/* STEP 4: Contract Activities & Checklist */}
+            {/* STEP 4: Financial Review + Checklist */}
             {wizardStep === 4 && (
               <div className="space-y-4 animate-in fade-in duration-200">
                 <span className="text-[10px] text-brand-red font-black uppercase tracking-wider block">
-                  {isAr ? 'الجمع الرابع: متطلبات التعاقد والمستندات المستلمة' : 'SECTION 4 - CONTRACT ACTIVITIES & CHECKLIST'}
+                  {isAr ? 'القسم الرابع: المراجعة المالية' : 'SECTION 4 - FINANCIAL REVIEW'}
+                </span>
+
+                {(() => {
+                  const parsedValue = FinancialsCalculator.parseToNumber(wizardForm.estValue);
+                  const parsedCost = FinancialsCalculator.parseToNumber(wizardForm.estCost);
+                  const margin = parsedValue - parsedCost;
+                  const marginPct = parsedValue > 0 ? (margin / parsedValue) * 100 : 0;
+                  const currency = wizardForm.currency;
+                  const fs = settings.financialSettings;
+                  const bidBond = FinancialsCalculator.calculateBidBond(parsedValue, fs);
+                  const perfBond = FinancialsCalculator.calculatePerformanceBond(parsedValue, fs);
+                  const advancePmt = FinancialsCalculator.calculateAdvancePayment(parsedValue, fs);
+                  const retention = FinancialsCalculator.calculateRetention(parsedValue, fs);
+                  const fmt = (n: number) => FinancialsCalculator.formatAmount(n);
+
+                  return (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div className="bg-white border border-gray-200 rounded-2xl p-3.5 space-y-1 shadow-sm">
+                          <span className="text-[9px] font-black text-gray-400 uppercase tracking-wider block">{isAr ? 'قيمة المناقصة' : 'Est. Value'}</span>
+                          <span className="text-[15px] font-black text-brand-navy font-mono block truncate">
+                            {wizardForm.estValue ? `${currency} ${fmt(parsedValue)}` : '—'}
+                          </span>
+                        </div>
+                        <div className="bg-white border border-gray-200 rounded-2xl p-3.5 space-y-1 shadow-sm">
+                          <span className="text-[9px] font-black text-gray-400 uppercase tracking-wider block">{isAr ? 'التكلفة التقديرية' : 'Est. Cost'}</span>
+                          <span className="text-[15px] font-black text-brand-navy font-mono block truncate">
+                            {wizardForm.estCost ? `${currency} ${fmt(parsedCost)}` : '—'}
+                          </span>
+                        </div>
+                        <div className="bg-white border border-gray-200 rounded-2xl p-3.5 space-y-1 shadow-sm">
+                          <span className="text-[9px] font-black text-gray-400 uppercase tracking-wider block">{isAr ? 'الهامش المتوقع' : 'Margin'}</span>
+                          <span className={`text-[15px] font-black font-mono block truncate ${margin >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                            {wizardForm.estValue ? `${currency} ${fmt(margin)}` : '—'}
+                          </span>
+                        </div>
+                        <div className="bg-white border border-gray-200 rounded-2xl p-3.5 space-y-1 shadow-sm">
+                          <span className="text-[9px] font-black text-gray-400 uppercase tracking-wider block">{isAr ? 'نسبة الهامش' : 'Margin %'}</span>
+                          <span className={`text-[15px] font-black font-mono block truncate ${marginPct >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                            {wizardForm.estValue ? `${marginPct.toFixed(1)}%` : '—'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div className="bg-amber-50/60 border border-amber-100 rounded-2xl p-3 space-y-1">
+                          <span className="text-[9px] font-black text-amber-700 uppercase tracking-wider block">{isAr ? 'كفالة الابتداء' : 'Bid Bond'}</span>
+                          <span className="text-[13px] font-black text-amber-800 font-mono block truncate">
+                            {wizardForm.estValue ? `${currency} ${fmt(bidBond)}` : '—'}
+                          </span>
+                          <span className="text-[8px] text-amber-500 font-bold">{fs.bidBondPercentage}%</span>
+                        </div>
+                        <div className="bg-blue-50/60 border border-blue-100 rounded-2xl p-3 space-y-1">
+                          <span className="text-[9px] font-black text-blue-700 uppercase tracking-wider block">
+                            {isAr ? 'كفالة أداء' : 'Perf. Bond'}
+                            <span className="text-[7px] text-blue-400 font-normal ml-1">(future)</span>
+                          </span>
+                          <span className="text-[13px] font-black text-blue-800 font-mono block truncate">
+                            {wizardForm.estValue ? `${currency} ${fmt(perfBond)}` : '—'}
+                          </span>
+                          <span className="text-[8px] text-blue-500 font-bold">{fs.performanceBondPercentage}%</span>
+                        </div>
+                        <div className="bg-purple-50/60 border border-purple-100 rounded-2xl p-3 space-y-1">
+                          <span className="text-[9px] font-black text-purple-700 uppercase tracking-wider block">
+                            {isAr ? 'دفعة مقدمة' : 'Adv. Payment'}
+                            <span className="text-[7px] text-purple-400 font-normal ml-1">(future)</span>
+                          </span>
+                          <span className="text-[13px] font-black text-purple-800 font-mono block truncate">
+                            {wizardForm.estValue ? `${currency} ${fmt(advancePmt)}` : '—'}
+                          </span>
+                          <span className="text-[8px] text-purple-500 font-bold">{fs.advancePaymentPercentage}%</span>
+                        </div>
+                        <div className="bg-rose-50/60 border border-rose-100 rounded-2xl p-3 space-y-1">
+                          <span className="text-[9px] font-black text-rose-700 uppercase tracking-wider block">
+                            {isAr ? 'حسم ضمان' : 'Retention'}
+                            <span className="text-[7px] text-rose-400 font-normal ml-1">(future)</span>
+                          </span>
+                          <span className="text-[13px] font-black text-rose-800 font-mono block truncate">
+                            {wizardForm.estValue ? `${currency} ${fmt(retention)}` : '—'}
+                          </span>
+                          <span className="text-[8px] text-rose-500 font-bold">{fs.retentionPercentage}%</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-black uppercase text-gray-400 block">{isAr ? 'ملاحظات مالية' : 'Financial Notes'}</label>
+                        <textarea
+                          value={wizardForm.financialNotes || ''}
+                          onChange={e => setWizardForm(prev => ({ ...prev, financialNotes: e.target.value }))}
+                          placeholder={isAr ? 'ملاحظات حول التحليل المالي للمناقصة...' : 'Notes on the tender financial analysis...'}
+                          rows={2}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-navy resize-none"
+                        />
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                <hr className="border-gray-150 my-2" />
+
+                <span className="text-[10px] text-brand-navy font-black uppercase tracking-wider block">
+                  {isAr ? 'متطلبات التعاقد والمستندات المستلمة' : 'CONTRACT ACTIVITIES & CHECKLIST'}
                 </span>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -88,6 +88,9 @@ export type ProjectAttachment = ContextualAttachment;
 
 export interface Project extends BaseEntity {
   code: string; // Project Code
+  sourceTenderId?: string;
+  sourceTenderNumber?: string;
+  awardedAt?: string;
   nameEn: string; // Project Name (English) - Required
   nameAr?: string; // Project Name (Arabic) - Optional
   client: string; // References Client Name/ID
@@ -165,6 +168,16 @@ export interface ProjectIPC extends BaseEntity {
   relatedDocumentIds?: string[];
 }
 
+export type ClaimStatus =
+  | 'Prepared'
+  | 'Submitted'
+  | 'Under Review'
+  | 'Negotiation'
+  | 'Counter Proposal'
+  | 'Approved'
+  | 'Rejected'
+  | 'Disputed';
+
 export interface ProjectClaim extends BaseEntity {
   projectId: string;
   wbsId?: string; // WBS Relationship
@@ -174,7 +187,7 @@ export interface ProjectClaim extends BaseEntity {
   requestedCompletionExtensionDays: number;
   approvedCompletionExtensionDays?: number;
   additionalClaimedAmount: number;
-  status: string;
+  status: ClaimStatus;
   approvedAmount?: number;
   invoicedAmount?: number;
   notes?: string;
@@ -320,4 +333,3 @@ export interface ProjectHistory {
   entityId?: string; // ID of the business record
   entityCode?: string; // e.g., 'IPC-08'
 }
-

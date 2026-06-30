@@ -3,9 +3,10 @@ import {
   Plus, Save, Edit3, Archive, RotateCcw, AlertTriangle, Calendar, 
   DollarSign, FileText, CheckCircle, X, Users, MessageSquare 
 } from 'lucide-react';
-import { ProjectClaim, ClaimNegotiation } from '../../../../domain/projects/Project';
+import { ProjectClaim, ClaimNegotiation, ClaimStatus } from '../../../../domain/projects/Project';
 import { ProjectLookupService } from '../../../../services/ProjectLookupService';
 import { RecordStatus } from '../../../../enums/RecordStatus';
+import { ClaimLifecycleValidator } from '../../../../business-rules/ClaimLifecycleValidator';
 
 interface ClaimsPanelProps {
   lang: 'ar' | 'en';
@@ -13,35 +14,6 @@ interface ClaimsPanelProps {
   projectCode: string;
   isProjectArchived: boolean;
   onRefresh?: () => void;
-}
-
-// Validator for Claim State Machine (Zero Business Logic in Views Rule)
-export class ClaimLifecycleValidator {
-  public static getAllowedNextStates(currentState: string): string[] {
-    switch (currentState) {
-      case 'Prepared':
-        return ['Prepared', 'Submitted'];
-      case 'Submitted':
-        return ['Submitted', 'Under Review', 'Negotiation', 'Rejected'];
-      case 'Under Review':
-        return ['Under Review', 'Negotiation', 'Counter Proposal', 'Approved', 'Rejected'];
-      case 'Negotiation':
-        return ['Negotiation', 'Counter Proposal', 'Approved', 'Rejected', 'Disputed'];
-      case 'Counter Proposal':
-        return ['Counter Proposal', 'Approved', 'Rejected', 'Disputed'];
-      case 'Approved':
-      case 'Rejected':
-      case 'Disputed':
-        return [currentState]; // Terminal states, no outward transitions allowed
-      default:
-        return ['Prepared'];
-    }
-  }
-
-  public static isTransitionAllowed(fromState: string, toState: string): boolean {
-    const allowed = this.getAllowedNextStates(fromState);
-    return allowed.includes(toState);
-  }
 }
 
 export function ClaimsPanel({
@@ -68,7 +40,7 @@ export function ClaimsPanel({
   const [claimedAmount, setClaimedAmount] = useState(0);
   const [approvedAmount, setApprovedAmount] = useState(0);
   const [invoicedAmount, setInvoicedAmount] = useState(0);
-  const [status, setStatus] = useState('Prepared');
+  const [status, setStatus] = useState<ClaimStatus>('Prepared');
   const [notes, setNotes] = useState('');
 
   // Child Entity list: Claim Negotiations

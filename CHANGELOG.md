@@ -2,12 +2,45 @@
 
 All notable changes to the **ROWAD Enterprise Platform** will be documented in this file.
 
-## [1.1.0] - 2026-06-30
+## [1.2.0] - Unreleased
 
 Development Sprint:
-Sprint 1 – Production Stabilization
+Sprint 2 - Tender & Award
 
-### Fixed (Sprint 1 — Production Stabilization)
+### Added (Sprint 2 - Tender Award Workflow)
+- **Tender Award Wizard**: Replaced the previous architecture-extension placeholder with a confirmation workflow that awards eligible tenders and converts them into linked Project records.
+- **Tender-to-Project Conversion Service**: Added `TenderAwardService` to orchestrate Tender validation, Project creation, tender status update, document transfer, business-event logging, and Project history transfer through existing repositories.
+- **Bidirectional Award Relationship**: Added optional relationship metadata (`awardedProjectId`, `awardedAt`, `sourceTenderId`, `sourceTenderNumber`) so awarded Tenders and generated Projects can reference each other without breaking existing records.
+- **Award Read-Only Lock**: Awarded tenders now disable document, note, assignment, milestone, and repeat-award edits in the inspection drawer.
+
+### Added (Sprint 2 - Claims Lifecycle Completion)
+- **`ClaimStatus` Domain Type**: Introduced a strongly-typed union (`Prepared | Submitted | Under Review | Negotiation | Counter Proposal | Approved | Rejected | Disputed`) for `ProjectClaim.status`, replacing `string` with compile-time safety.
+- **`ClaimLifecycleValidator`** extracted into `src/business-rules/ClaimLifecycleValidator.ts` as a pure business-rules class, removing the state machine from the UI layer and preserving DDD boundaries.
+- **Full Claim Lifecycle Enforced**: Claims now support the complete lifecycle progression: Prepared → Submitted → Under Review → Negotiation → Counter Proposal → terminal states (Approved / Rejected / Disputed). Transitions are validated by the business rules layer.
+
+### Added (Sprint 2 - Tender Financial Review Step)
+- **Wizard Step 4 Transformed**: Renamed from "Financial" to "Financial Review" and converted from an empty data-entry screen to a read-only financial analysis dashboard showing estimated value, estimated cost, calculated margin, margin %, bid bond preview, and future-ready bonds (performance bond, advance payment, retention).
+- **Financial Notes Field**: Added a free-text notes field in Step 4 for financial analysis remarks.
+- **QA Finding #10 Resolved**: Step 4 is no longer mislabeled — its content now matches its name.
+- **QA Finding #11 Resolved**: The Financial step now displays actual financial calculations derived from existing WizardForm state and Enterprise Settings, without relocating any Step 1 fields.
+
+### Added (Sprint 2 - Tender Lifecycle Full State Machine)
+- **`TenderLifecycleValidator`** in `src/business-rules/TenderLifecycleValidator.ts`: Pure business-rules class enforcing the complete Tender state machine: Draft → Under Study → Ready for Submission → Submitted → Under Negotiation → Awarded (→ terminal). Lost / Cancelled allowed from any pre-award state. Extracted from the UI layer per DDD boundaries.
+- **Status Transition Service**: Added `TenderService.transitionTenderStatus()` and `TenderService.getStatusLabels()` to persist workflow status changes, update bilingual display labels, and log BusinessEvents.
+- **Status Transition UI**: Replaced the read-only Pre-Award State display in `TenderOverviewTab` with a dropdown of allowed next states when transitions are available. Disabled for read-only (awarded) tenders and terminal states.
+- **`workflowStatus` Field**: Added `WorkflowStatus` enum field to UI `Tender` type and `LegacyTender` interface for type-safe state machine tracking, populated correctly in seed data and mapper output.
+
+### Fixed (Sprint 2)
+- **`ProjectDashboard.tsx` type safety**: Changed `claims.some(c => c.status === 'Escalated')` to `'Disputed'` to match the new `ClaimStatus` union type, resolving a TS2367 comparison error.
+
+### Fixed (Sprint 2 Finalization — Pre-Exit Cleanup)
+- **D-002 — `ProjectDashboard.tsx` null crash**: Changed `v.commercialOffer.amount` to `v.commercialOffer?.amount ?? 0` in the pending VOs KPI calculation. `commercialOffer` is optional on `ProjectVariationOrder`; accessing `.amount` directly caused a runtime crash when any VO had no commercial offer set.
+- **D-001 — Removed unused imports (`ProjectDashboard.tsx`)**: Removed 13 unused Lucide icon imports (`Building2`, `Users`, `Calendar`, `Pickaxe`, `Award`, `Receipt`, `AlertTriangle`, `PenTool`, `HelpCircle`, `Link`, `CheckCircle2`, `AlertCircle`, `FileSpreadsheet`) and the unused `BiText` import.
+- **D-001 — Removed unused imports (`useOngoingTenders.ts`)**: Removed `HealthCalculator` and `HealthStatus` imports that were included but never called in the hook body. Also removed the unreferenced `eventRepo` variable declaration in `handleStatusTransition`.
+- **D-003 — Documented Award path decision (`TenderAwardService.ts`)**: Added inline architectural comment explaining why `awardLegacyTender()` sets `workflowStatus` directly rather than routing through `transitionTenderStatus()` — prevents stale-repo-read during award and duplicate BusinessEvent logging. The canonical Award path and validator enforcement are documented at the call site.
+- **D-005 — Corrected `ROADMAP_STATUS.md` verification row**: Sprint 2 Verification row corrected from `✅ Completed` to `🟡 Pending` — verification passes but git commit, tag `v1.2.0`, and push remain pending Sprint Exit approval.
+
+## [1.1.0] - 2026-06-30
 - **SPR Runtime Stability**: Resolved the root cause of monthly report rendering crashes in `SprReportingEngine.tsx` by implementing complete null-safety and type-safety checks inside monthly data compilation filters.
 - **Tender Wizard Validation**: Added strict step-by-step validator logic inside `TenderWizardModal.tsx` to prevent bypassing General step required fields and Step 3 submission dates.
 - **Subcontractor Calculation Decoupling**: Decoupled subcontractor total subcontract amount, till date invoiced amount, and completion percentage in `SubcontractorsPanel.tsx` to prevent silent overrides and preserve user inputs exactly.

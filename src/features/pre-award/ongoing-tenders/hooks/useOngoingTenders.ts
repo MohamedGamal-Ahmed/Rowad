@@ -3,9 +3,10 @@ import { Tender } from '../types';
 import { Settings } from '../../../../domain/administration/Settings';
 import { FinancialsCalculator } from '../../../../business-rules/FinancialsCalculator';
 import { Clock as AppClock } from '../../../../services/Clock';
-import { HealthCalculator } from '../../../../business-rules/HealthCalculator';
-import { HealthStatus } from '../../../../enums/HealthStatus';
 import { BusinessEventRepository } from '../../../../repositories/BusinessEventRepository';
+import { TenderAwardService } from '../../../../services/TenderAwardService';
+import { TenderService } from '../../../../services/TenderService';
+import { WorkflowStatus } from '../../../../enums/WorkflowStatus';
 
 interface UseOngoingTendersProps {
   list: Tender[];
@@ -119,6 +120,7 @@ export function useOngoingTenders({
         overallSubmissionDate: '2026-09-05',
         projectStatus: { en: 'Preparing Proposal', ar: 'جاري إعداد العرض العلمي والمالي' },
         awardStatus: { en: 'Pending Selection', ar: 'في انتظار تحديد المقاول' },
+        workflowStatus: WorkflowStatus.UNDER_STUDY,
         recordStatus: 'Active',
         daysRemaining: 45,
         health: 'Healthy',
@@ -153,6 +155,7 @@ export function useOngoingTenders({
         overallSubmissionDate: '2026-07-28',
         projectStatus: { en: 'Preparing Proposal', ar: 'جاري إعداد العرض العلمي والمالي' },
         awardStatus: { en: 'Pending Selection', ar: 'في انتظار تحديد المقاول' },
+        workflowStatus: WorkflowStatus.UNDER_STUDY,
         recordStatus: 'Active',
         daysRemaining: 11,
         health: 'Due Soon',
@@ -184,6 +187,14 @@ export function useOngoingTenders({
   // Add notes directly into drawer state
   const handleAddNoteToTender = (id: string) => {
     if (!newNoteText.trim()) return;
+    const tender = list.find(t => t.id === id);
+    if (tender && new TenderAwardService().isTenderReadOnly(tender)) {
+      setToastAlert({
+        type: 'warn',
+        message: isAr ? 'لا يمكن تعديل مناقصة تمت ترسيتها.' : 'Awarded tenders are read-only.',
+      });
+      return;
+    }
     const noteId = `note-${Date.now()}`;
     onUpdateList(prev =>
       prev.map(t => {
@@ -230,6 +241,14 @@ export function useOngoingTenders({
   // Add document link simulation directly to the tender record state
   const handleAddDocToTender = (id: string) => {
     if (!newDocName.trim()) return;
+    const tender = list.find(t => t.id === id);
+    if (tender && new TenderAwardService().isTenderReadOnly(tender)) {
+      setToastAlert({
+        type: 'warn',
+        message: isAr ? 'لا يمكن تعديل مناقصة تمت ترسيتها.' : 'Awarded tenders are read-only.',
+      });
+      return;
+    }
     const docId = `doc-${Date.now()}`;
     const docNameWithExt = newDocName.trim().endsWith('.pdf') ? newDocName.trim() : `${newDocName.trim()}.pdf`;
     onUpdateList(prev =>
@@ -324,6 +343,62 @@ export function useOngoingTenders({
     });
   };
 
+  const handleAwardTender = async (tender: Tender) => {
+    const awardService = new TenderAwardService();
+    const result = await awardService.awardLegacyTender(
+      tender,
+      isAr ? 'أحمد مصطفى' : 'Ahmed Mostafa'
+    );
+
+    if (!result.success || !result.tender) {
+      setToastAlert({
+        type: 'warn',
+        message: result.errors.join(' '),
+      });
+      return;
+    }
+
+    onUpdateList(prev => prev.map(item => item.id === tender.id ? result.tender! : item));
+    setSelectedTenderId(result.tender.id);
+    setActiveTab('overview');
+    setToastAlert({
+      type: 'success',
+      message: isAr
+        ? `تمت ترسية المناقصة وربطها بالمشروع ${result.project?.code}.`
+        : `Tender awarded and linked to Project ${result.project?.code}.`,
+    });
+  };
+
+  const handleStatusTransition = async (tenderId: string, newStatus: WorkflowStatus) => {
+    const tenderService = new TenderService();
+
+    const result = await tenderService.transitionTenderStatus(
+      tenderId,
+      newStatus,
+      isAr ? 'أحمد مصطفى' : 'Ahmed Mostafa'
+    );
+
+    if (!result.success) {
+      setToastAlert({
+        type: 'warn',
+        message: result.errors.join(' '),
+      });
+      return;
+    }
+
+    if (result.updatedTender) {
+      onUpdateList(prev => prev.map(item => item.id === tenderId ? result.updatedTender! : item));
+      setSelectedTenderId(tenderId);
+      setActiveTab('overview');
+      setToastAlert({
+        type: 'success',
+        message: isAr
+          ? `تم تغيير حالة المناقصة إلى ${result.updatedTender.projectStatus.ar}`
+          : `Tender status changed to ${result.updatedTender.projectStatus.en}`,
+      });
+    }
+  };
+
   const clearFilters = () => {
     setStatusFilter('all');
     setRecordFilter('all');
@@ -365,6 +440,10 @@ export function useOngoingTenders({
   });
 
   const selectedTender = list.find(t => t.id === selectedTenderId) || null;
+
+  // Suppress unused settings warning — settings is reserved for future
+  // Sprint 4 Enterprise Policies (timeline rules, financial parameters).
+  void settings;
 
   return {
     selectedTenderId,
@@ -413,6 +492,8 @@ export function useOngoingTenders({
     handleAddDocToTender,
     handleBulkArchive,
     handleBulkExport,
+    handleAwardTender,
+    handleStatusTransition,
     handleDrag,
     handleDrop,
     triggerAnalysis,

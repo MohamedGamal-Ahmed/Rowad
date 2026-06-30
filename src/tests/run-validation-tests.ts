@@ -70,6 +70,7 @@ function runTests() {
     overallSubmissionDate: '2026-08-20',
     projectStatus: { en: 'Under Study', ar: 'تحت الدراسة' },
     awardStatus: { en: 'Pending', ar: 'معلق' },
+    workflowStatus: 'Under Study',
     recordStatus: 'Active',
     daysRemaining: 54,
     health: 'Healthy',

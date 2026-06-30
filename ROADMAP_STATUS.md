@@ -24,7 +24,7 @@
 |--------|------|--------|----------|-----|
 | Sprint 0 | Project Governance & Architecture Foundation | ✅ Completed | 100% | — |
 | Sprint 1 | Production Stabilization | ✅ Completed | 100% | `v1.1.0` |
-| Sprint 2 | Tender & Award | 🟡 In Progress | 0% | _pending v1.2.0_ |
+| Sprint 2 | Tender & Award | 🟡 Pending Exit | 100% (Implementation) | _pending v1.2.0_ |
 | Sprint 3 | Commercial Modules (IPC + VO + NOC + Subcontracts + SPR completion) | ⏳ Planned | 0% | _pending v1.3.0_ |
 | Sprint 4 | Enterprise System Settings & Policies | ⏳ Planned | 0% | _pending v1.4.0_ |
 | Sprint 5 | Security & RBAC Foundation | ⏳ Planned | 0% | _pending v1.5.0_ |
@@ -57,6 +57,16 @@ Legend: ✅ Completed · 🟡 In Progress · ⏳ Planned · 🔴 Blocked
 
 ---
 
+## Sprint 2 — Completed Work Breakdown
+
+| # | QA Finding / Task | Bucket | Status | Notes |
+|---|------------------|--------|--------|-------|
+| 1 | F#25 — Tender → Project Award workflow | Award Process | ✅ Completed | `TenderAwardService`, Award wizard UI, bidirectional relationship, read-only lock, doc/history transfer |
+| 2 | F#49 — Claims lifecycle stuck at "Prepared" | Claims Lifecycle | ✅ Completed | `ClaimStatus` union type, `ClaimLifecycleValidator` in business-rules, 8-state lifecycle with terminal blocking |
+| 3 | F#10/#11 — Tender Financial step empty/mislabeled | Tender Financial | ✅ Completed | Step 4 renamed to "Financial Review", read-only financial analysis computed from WizardForm state + Settings |
+| 4 | Tender Lifecycle Full State Machine | Tender Lifecycle | ✅ Completed | `TenderLifecycleValidator`, `TenderService.transitionTenderStatus()`, UI dropdown, BusinessEvent logging, seed data updated |
+| 5 | Sprint 2 Verification (lint / build / regression / report) | Exit | 🟡 Pending | `tsc --noEmit` clean, `npm run build` succeeds, all docs updated. **Pending: git commit + tag `v1.2.0` + push.** |
+
 ## Current Blockers
 
 _None yet._
@@ -68,7 +78,7 @@ _None yet._
 | ID | Topic | Notes | Owner |
 |----|-------|-------|-------|
 | OD-001 | Document Control sub-modules (#71 — Transmittals Hub, Incoming/Outgoing Letters, Revision History, Makers Approval) currently placed in Phase 2. Does the business need them earlier? If yes, candidate Sprint between 3 and 4. | New features, not bug fixes — Phase 2 by default. | CTO |
-| OD-002 | Tender → Project (Finding #25) Award workflow scope — full conversion wizard in Sprint 2, or split into "minimum viable Award" first and "full wizard" later? | To be settled at Sprint 2 kickoff. | CTO |
+| OD-002 | Tender → Project (Finding #25) Award workflow scope — implemented as an in-drawer Award confirmation wizard backed by `TenderAwardService`; broader Claims and Tender Financial completion remain separate Sprint 2 items. | Resolved. Claims lifecycle (F#49) and Tender Financial Step (F#11) completed in subsequent Sprint 2 work. | CTO |
 | OD-003 | Backfill foundational ADRs (ADR-001 to ADR-008 listed in CLAUDE.md ch. 15) — schedule a dedicated documentation slot or backfill incrementally as each topic is touched? | Currently captured informally in CLAUDE.md + PROJECT_BOOK.md. | CTO |
 
 ---

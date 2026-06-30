@@ -12,6 +12,8 @@ import { Milestone } from '../common/Milestone';
 export interface Tender extends BaseEntity {
   projectCode: string;
   tenderNumber: string;
+  awardedProjectId?: string;
+  awardedAt?: string;
   projectName: BilingualString;
   general: GeneralInformation;
   timeline: TimelineInformation;

@@ -31,6 +31,7 @@ export class ImportService {
           overallSubmissionDate: row.overallSubmissionDate || row.techSubmissionDate,
           projectStatus: { en: 'Under Study', ar: 'تحت الدراسة' },
           awardStatus: { en: 'Pending', ar: 'معلق' },
+          workflowStatus: 'Under Study',
           recordStatus: 'Active',
           daysRemaining: 30,
           health: 'Healthy',

@@ -1,4 +1,5 @@
 import { Tender } from '../types';
+import { WorkflowStatus } from '../../../../enums/WorkflowStatus';
 
 export const initialTenders: Tender[] = [
   {
@@ -23,6 +24,7 @@ export const initialTenders: Tender[] = [
     contractQualsDueDate: '2026-07-01',
     projectStatus: { en: 'Ready for Submittal', ar: 'جاهز للتسليم' },
     awardStatus: { en: 'Under Negotiation', ar: 'تحت التفاوض' },
+    workflowStatus: WorkflowStatus.READY_FOR_SUBMISSION,
     recordStatus: 'Active',
     daysRemaining: 24,
     health: 'Healthy',
@@ -68,6 +70,7 @@ export const initialTenders: Tender[] = [
     contractQualsDueDate: '2026-06-11',
     projectStatus: { en: 'Preparing Proposal', ar: 'جاري إعداد العرض العلمي والمالي' },
     awardStatus: { en: 'Pending Selection', ar: 'في انتظار تحديد المقاول' },
+    workflowStatus: WorkflowStatus.UNDER_STUDY,
     recordStatus: 'Active',
     daysRemaining: 4,
     health: 'Due Soon',
@@ -111,6 +114,7 @@ export const initialTenders: Tender[] = [
     contractQualsDueDate: '2026-05-27',
     projectStatus: { en: 'Submitted', ar: 'تم التسليم والمناقشة الفنية' },
     awardStatus: { en: 'Preferred Bidder', ar: 'المناقص المفضل الأفضل في الاستعراض' },
+    workflowStatus: WorkflowStatus.UNDER_NEGOTIATION,
     recordStatus: 'Active',
     daysRemaining: -1,
     health: 'Overdue',
@@ -153,6 +157,7 @@ export const initialTenders: Tender[] = [
     contractQualsDueDate: '2026-05-16',
     projectStatus: { en: 'Archived Submission', ar: 'ملف المزايدة مؤرشف' },
     awardStatus: { en: 'Completed', ar: 'انتهت المزايدة لصالح طرف آخر' },
+    workflowStatus: WorkflowStatus.LOST,
     recordStatus: 'Archived',
     daysRemaining: 0,
     health: 'Archived',
@@ -195,6 +200,7 @@ export const initialTenders: Tender[] = [
     contractQualsDueDate: '2026-08-06',
     projectStatus: { en: 'Initial Stage', ar: 'المرحلة الأولية للمشروع' },
     awardStatus: { en: 'Pending Selection', ar: 'قيد انتظار الفتح الفني' },
+    workflowStatus: WorkflowStatus.DRAFT,
     recordStatus: 'Active',
     daysRemaining: 60,
     health: 'Healthy',
@@ -235,6 +241,7 @@ export const initialTenders: Tender[] = [
     contractQualsDueDate: '2026-06-15',
     projectStatus: { en: 'Reviewing Scope', ar: 'جاري مراجعة نطاق العمل الفعلي' },
     awardStatus: { en: 'Under Negotiation', ar: 'قيد المراجعة والمطابقة' },
+    workflowStatus: WorkflowStatus.UNDER_STUDY,
     recordStatus: 'Active',
     daysRemaining: 7,
     health: 'Due Soon',

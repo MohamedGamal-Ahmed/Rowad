@@ -1,11 +1,10 @@
 import React from 'react';
-import { 
-  Building2, Users, Calendar, DollarSign, FileText, Pickaxe, Award, Receipt, 
-  AlertTriangle, PenTool, Clock, ShieldCheck, HelpCircle, Activity, Link, ExternalLink,
-  Flame, CheckCircle2, AlertCircle, FileSpreadsheet, ArrowUpRight
+import {
+  DollarSign, FileText,
+  Clock, ShieldCheck, Activity, ExternalLink,
+  Flame, ArrowUpRight
 } from 'lucide-react';
 import { Project, ProjectMeeting, ProjectIPC, ProjectClaim, ProjectVariationOrder, ProjectNOC, ProjectDocument, ContextualAttachment, ProjectHistory } from '../../../../domain/projects/Project';
-import { BiText } from '../../../../components/BiText';
 
 interface ProjectDashboardProps {
   lang: 'ar' | 'en';
@@ -46,7 +45,7 @@ export function ProjectDashboard({
 
   // 1. Calculate Health scores (simulate real data indicators based on records)
   const scheduleHealth = meetings.length > 5 ? 'Warning' : 'Healthy';
-  const costHealth = claims.some(c => c.status === 'Escalated') ? 'Critical' : 'Healthy';
+  const costHealth = claims.some(c => c.status === 'Disputed') ? 'Critical' : 'Healthy';
   const documentHealth = documents.filter(d => d.priority === 'High' && d.status !== 'Approved').length > 2 ? 'Warning' : 'Healthy';
   const contractHealth = 'Healthy';
   const operationalHealth = 'Healthy';
@@ -68,7 +67,7 @@ export function ProjectDashboard({
   const pendingClaimsValue = claims.filter(c => c.status === 'Submitted' || c.status === 'Under Review').reduce((sum, c) => sum + c.additionalClaimedAmount, 0);
 
   const pendingVOSCount = vos.filter(v => v.status === 'Submitted' || v.status === 'Draft').length;
-  const pendingVOSValue = vos.filter(v => v.status === 'Submitted' || v.status === 'Draft').reduce((sum, v) => sum + v.commercialOffer.amount, 0);
+  const pendingVOSValue = vos.filter(v => v.status === 'Submitted' || v.status === 'Draft').reduce((sum, v) => sum + (v.commercialOffer?.amount ?? 0), 0);
 
   const pendingNocCount = nocs.filter(n => n.status === 'Pending' || n.status === 'Under Review').length;
   const activeMeetingsCount = meetings.length;

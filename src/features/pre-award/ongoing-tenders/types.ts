@@ -1,4 +1,5 @@
 import { Milestone } from '../../../domain/common/Milestone';
+import { WorkflowStatus } from '../../../enums/WorkflowStatus';
 
 export interface TenderAssignment {
   assignmentId: string;
@@ -53,6 +54,8 @@ export interface Tender {
   id: string;
   projectCode: string;
   tenderNumber: string;
+  awardedProjectId?: string;
+  awardedAt?: string;
   projectName: { en: string; ar: string };
   location: { en: string; ar: string };
   coordinator: { en: string; ar: string };
@@ -71,6 +74,7 @@ export interface Tender {
   contractQualsDueDate?: string;
   projectStatus: { en: string; ar: string };
   awardStatus: { en: string; ar: string };
+  workflowStatus: WorkflowStatus;
   recordStatus: 'Active' | 'Under Review' | 'Archived' | 'On Hold';
   daysRemaining: number;
   health: 'Healthy' | 'Due Soon' | 'Overdue' | 'Archived';
@@ -150,6 +154,7 @@ export interface WizardFormState {
   checklistSpecs: boolean;
   siteVisitRequired: boolean;
   siteVisitDate: string;
+  financialNotes?: string;
   overriddenFields: {
     commDate?: boolean;
     kickOffDate?: boolean;

@@ -27,6 +27,7 @@ interface TenderMilestonesTabProps {
   isAr: boolean;
   onUpdateTender: (updated: Tender) => void;
   onShowAlert: (msg: string) => void;
+  readOnly?: boolean;
 }
 
 // Mock User DB matching existing database context
@@ -44,6 +45,7 @@ export function TenderMilestonesTab({
   isAr,
   onUpdateTender,
   onShowAlert,
+  readOnly = false,
 }: TenderMilestonesTabProps) {
   const milestoneService = new MilestoneService();
   const [activeMilestoneId, setActiveMilestoneId] = useState<string | null>(null);
@@ -66,6 +68,10 @@ export function TenderMilestonesTab({
   );
 
   const handleStateTransition = async (milestone: Milestone, toState: MilestoneWorkflowState) => {
+    if (readOnly) {
+      onShowAlert(isAr ? 'لا يمكن تعديل مناقصة تمت ترسيتها.' : 'Awarded tenders are read-only.');
+      return;
+    }
     const res = await milestoneService.transitionWorkflow(
       milestone,
       toState,
@@ -92,6 +98,10 @@ export function TenderMilestonesTab({
   };
 
   const handleReopen = async (milestone: Milestone) => {
+    if (readOnly) {
+      onShowAlert(isAr ? 'لا يمكن تعديل مناقصة تمت ترسيتها.' : 'Awarded tenders are read-only.');
+      return;
+    }
     const res = await milestoneService.reopenMilestone(milestone, 'user-1');
     const updatedMilestones = (selectedTender.milestones || []).map(m => 
       m.id === milestone.id ? res.updatedMilestone : m
@@ -106,6 +116,10 @@ export function TenderMilestonesTab({
   };
 
   const handleUserChange = async (milestone: Milestone, newUserId: string) => {
+    if (readOnly) {
+      onShowAlert(isAr ? 'لا يمكن تعديل مناقصة تمت ترسيتها.' : 'Awarded tenders are read-only.');
+      return;
+    }
     const updated = await milestoneService.updateResponsibleUser(milestone, newUserId, 'user-1');
     const updatedMilestones = (selectedTender.milestones || []).map(m => 
       m.id === milestone.id ? updated : m
@@ -120,6 +134,10 @@ export function TenderMilestonesTab({
   };
 
   const handleVerify = async (milestone: Milestone, status: 'verified' | 'rejected') => {
+    if (readOnly) {
+      onShowAlert(isAr ? 'لا يمكن تعديل مناقصة تمت ترسيتها.' : 'Awarded tenders are read-only.');
+      return;
+    }
     if (!verificationNotes.trim()) {
       onShowAlert(isAr ? 'يرجى كتابة ملاحظات التحقق أولاً.' : 'Please add verification notes.');
       return;
@@ -406,9 +424,10 @@ export function TenderMilestonesTab({
                         {isAr ? 'الموظف المسؤول' : 'RESPONSIBLE ENGINEER'}
                       </span>
                       <select
+                        disabled={readOnly}
                         value={m.responsibleUserId}
                         onChange={(e) => handleUserChange(m, e.target.value)}
-                        className="bg-white border border-slate-200 rounded-lg p-2 text-xs focus:outline-none w-full font-bold text-slate-700 cursor-pointer"
+                        className="bg-white border border-slate-200 rounded-lg p-2 text-xs focus:outline-none w-full font-bold text-slate-700 cursor-pointer disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
                       >
                         {MOCK_USERS.map(user => (
                           <option key={user.id} value={user.id}>
