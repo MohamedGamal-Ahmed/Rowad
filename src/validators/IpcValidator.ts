@@ -34,16 +34,23 @@ export class IpcValidator {
       errors.push('Invoice Net value cannot be negative.');
     }
 
+    // 2b. Invoice Net value can never exceed Invoice Gross value (BUG-IPC-002)
+    if (ipc.invoiceNetValue > ipc.invoiceGrossValue) {
+      errors.push('Invoice Net value cannot exceed Invoice Gross value.');
+    }
+
     // 3. Certified Fields checks
-    const isCertifiedOrPaid = ipc.status === 'Certified' || ipc.status === 'Paid';
+    const isCertifiedOrPaid = ipc.status === 'Certified' || ipc.status === 'Paid' || ipc.status === 'Partially Paid';
     if (isCertifiedOrPaid) {
-      if (ipc.certifiedGrossValue === undefined || ipc.certifiedGrossValue < 0) {
-        errors.push('Certified Gross value is required and cannot be negative for Certified or Paid status.');
+      // Certified Gross must be a strictly positive value once the IPC enters Certified/Paid/Partially
+      // Paid status — zero is not a valid certification (BUG-IPC-001: PAID IPC with zero financials).
+      if (ipc.certifiedGrossValue === undefined || ipc.certifiedGrossValue <= 0) {
+        errors.push('Certified Gross value is required and must be greater than zero for Certified, Partially Paid or Paid status.');
       }
       if (ipc.netCertifiedAmount === undefined || ipc.netCertifiedAmount < 0) {
         errors.push('Net Certified amount is required and cannot be negative.');
       }
-      
+
       // Retention, recovery, tax must be non-negative
       if (ipc.retentionDeduction !== undefined && ipc.retentionDeduction < 0) {
         errors.push('Retention deduction cannot be negative.');
@@ -54,6 +61,15 @@ export class IpcValidator {
       if (ipc.withholdingTax !== undefined && ipc.withholdingTax < 0) {
         errors.push('Withholding tax cannot be negative.');
       }
+
+      // Net Certified can never exceed Certified Gross (BUG-IPC-002, certified-stage guard)
+      if (
+        ipc.netCertifiedAmount !== undefined &&
+        ipc.certifiedGrossValue !== undefined &&
+        ipc.netCertifiedAmount > ipc.certifiedGrossValue
+      ) {
+        errors.push('Net Certified amount cannot exceed Certified Gross value.');
+      }
     }
 
     // 4. Net Amount can never be negative
@@ -61,13 +77,15 @@ export class IpcValidator {
       errors.push('Net Certified amount cannot be negative.');
     }
 
-    // 5. Paid Amount cannot exceed Net Certified Amount
+    // 5. Paid Amount cannot exceed Net Certified Amount.
+    // This must hold even when netCertified is 0/undefined — an IPC that has not been
+    // certified yet cannot have any payment recorded against it (BUG-IPC-003).
     const totalPaid = (ipc.payments || [])
       .filter(p => p.recordStatus !== 'Archived' && p.status !== 'Rejected')
       .reduce((sum, p) => sum + p.paymentAmount, 0);
 
     const netCertified = ipc.netCertifiedAmount ?? 0;
-    if (totalPaid > netCertified && netCertified > 0) {
+    if (totalPaid > netCertified) {
       errors.push(`Total paid amount (${totalPaid}) cannot exceed net certified amount (${netCertified}).`);
     }
 

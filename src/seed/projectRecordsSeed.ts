@@ -87,7 +87,36 @@ export const baselineIPCs: ProjectIPC[] = [
     status: "Paid",
     remarks: "Certified and payment received net of standard retention and advance recovery.",
     relatedVOIds: [],
-    relatedDocumentIds: []
+    relatedDocumentIds: [],
+
+    // Advanced Commercial IPC Engine Fields — backfilled (data correction, BUG-IPC-001).
+    // Certified Gross = Invoice Gross (fully certified as-claimed). Retention 10% + Advance
+    // Recovery 10% per standard enterprise financial settings, WHT 0% (not configured).
+    // Net Certified = 8,500,000 - 850,000 - 850,000 = 6,800,000, fully collected (status: Paid).
+    certifiedGrossValue: 8500000,
+    retentionDeduction: 850000,
+    advanceRecovery: 850000,
+    withholdingTax: 0,
+    netCertifiedAmount: 6800000,
+    previousIpcGrossCumulative: 0,
+    previousIpcNetCumulative: 0,
+    payments: [
+      {
+        id: "pay-ipc-2-1",
+        ipcId: "ipc-2",
+        paymentAmount: 6800000,
+        paymentDate: "2026-06-20",
+        paymentMethod: "Bank Wire Transfer",
+        paymentReference: "TR-EASTOWN-14-01",
+        receiptNumber: "REC-EASTOWN-14",
+        bank: "CIB Egypt",
+        currency: "EGP",
+        exchangeRate: 1,
+        status: "Verified",
+        recordStatus: RecordStatus.ACTIVE,
+        auditInfo: defaultAudit
+      }
+    ]
   }
 ];
 

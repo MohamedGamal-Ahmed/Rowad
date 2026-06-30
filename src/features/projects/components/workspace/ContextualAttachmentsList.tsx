@@ -5,6 +5,7 @@ import {
 import { ContextualAttachment } from '../../../../domain/projects/Project';
 import { ProjectRepository } from '../../../../repositories/ProjectRepository';
 import { BiText } from '../../../../components/BiText';
+import { useDialog } from '../../../../components/ui/DialogProvider';
 
 interface ContextualAttachmentsListProps {
   lang: 'ar' | 'en';
@@ -23,6 +24,7 @@ export function ContextualAttachmentsList({
 }: ContextualAttachmentsListProps) {
   const isAr = lang === 'ar';
   const projectRepo = new ProjectRepository();
+  const dialog = useDialog();
 
   const [attachments, setAttachments] = useState<ContextualAttachment[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -96,7 +98,11 @@ export function ContextualAttachmentsList({
   };
 
   const handleDelete = async (id: string, fileName: string) => {
-    if (confirm(isAr ? `هل أنت متأكد من حذف المرفق ${fileName}؟` : `Are you sure you want to delete attachment ${fileName}?`)) {
+    const confirmed = await dialog.confirm(
+      isAr ? `هل أنت متأكد من حذف المرفق ${fileName}؟` : `Are you sure you want to delete attachment ${fileName}?`,
+      { danger: true, title: isAr ? 'حذف مرفق' : 'Delete Attachment', confirmLabel: isAr ? 'حذف' : 'Delete' }
+    );
+    if (confirmed) {
       await projectRepo.deleteContextualAttachment(id);
       await projectRepo.addHistory(
         projectId, 
@@ -174,7 +180,7 @@ export function ContextualAttachmentsList({
               <div className="flex items-center gap-1 shrink-0">
                 <button 
                   type="button"
-                  onClick={() => alert(`Simulating download of ${att.fileName}`)}
+                  onClick={() => dialog.toast(isAr ? `جاري محاكاة تحميل ${att.fileName}` : `Simulating download of ${att.fileName}`, 'info')}
                   className="p-1.5 text-slate-400 hover:text-brand-navy rounded hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                   title={isAr ? 'تحميل' : 'Download'}
                 >

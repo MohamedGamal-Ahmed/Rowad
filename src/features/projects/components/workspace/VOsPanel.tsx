@@ -7,6 +7,7 @@ import { ProjectVariationOrder, VOApprovalHistory } from '../../../../domain/pro
 import { ProjectLookupService } from '../../../../services/ProjectLookupService';
 import { RecordStatus } from '../../../../enums/RecordStatus';
 import { VOLifecycleValidator } from '../../../../validators/VOLifecycleValidator';
+import { useDialog } from '../../../../components/ui/DialogProvider';
 
 interface VOsPanelProps {
   lang: 'ar' | 'en';
@@ -25,6 +26,7 @@ export function VOsPanel({
 }: VOsPanelProps) {
   const isAr = lang === 'ar';
   const lookupService = ProjectLookupService.getInstance();
+  const dialog = useDialog();
 
   const [vos, setVos] = useState<ProjectVariationOrder[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -112,13 +114,13 @@ export function VOsPanel({
     if (!voNumber.trim() || !voTitle.trim()) return;
 
     if (isProjectArchived) {
-      window.alert(isAr ? 'لا يمكن تعديل السجلات لأن المشروع مؤرشف حالياً.' : 'Cannot save changes because the project is currently archived.');
+      await dialog.alert(isAr ? 'لا يمكن تعديل السجلات لأن المشروع مؤرشف حالياً.' : 'Cannot save changes because the project is currently archived.');
       return;
     }
 
     // Approved status check: Lock Approved VOs from edits except through workflow
     if (editingVo && (editingVo.status === 'Approved' || editingVo.status === 'Implemented') && status === editingVo.status) {
-      window.alert(isAr ? 'لا يمكن تعديل أمر تغييري معتمد ومقفل.' : 'Cannot modify an approved/implemented Variation Order.');
+      await dialog.alert(isAr ? 'لا يمكن تعديل أمر تغييري معتمد ومقفل.' : 'Cannot modify an approved/implemented Variation Order.');
       return;
     }
 
@@ -219,9 +221,9 @@ export function VOsPanel({
     setApprovals(approvals.filter(a => a.id !== id));
   };
 
-  const startCreate = () => {
+  const startCreate = async () => {
     if (isProjectArchived) {
-      window.alert(isAr ? 'المشروع مؤرشف للقراءة فقط.' : 'Project is archived (Read-Only).');
+      await dialog.alert(isAr ? 'المشروع مؤرشف للقراءة فقط.' : 'Project is archived (Read-Only).');
       return;
     }
     resetForm();
@@ -229,9 +231,9 @@ export function VOsPanel({
     setShowForm(true);
   };
 
-  const startEdit = (vo: ProjectVariationOrder) => {
+  const startEdit = async (vo: ProjectVariationOrder) => {
     if (isProjectArchived) {
-      window.alert(isAr ? 'المشروع مؤرشف للقراءة فقط.' : 'Project is archived (Read-Only).');
+      await dialog.alert(isAr ? 'المشروع مؤرشف للقراءة فقط.' : 'Project is archived (Read-Only).');
       return;
     }
     loadVoIntoForm(vo);
@@ -331,13 +333,15 @@ export function VOsPanel({
 
     // Restrict delete: Block archive if status is already approved
     if (vo.status === 'Approved') {
-      window.alert(isAr ? 'لا يمكن أرشفة أمر تغييري معتمد ومقفل.' : 'Cannot archive an approved variation order.');
+      await dialog.alert(isAr ? 'لا يمكن أرشفة أمر تغييري معتمد ومقفل.' : 'Cannot archive an approved variation order.');
       return;
     }
 
-    const reason = window.prompt(isAr ? 'أدخل سبب أرشفة الأمر التغييري (إلزامي):' : 'Enter VO archive reason (mandatory):');
+    const reason = await dialog.promptText(
+      isAr ? 'أدخل سبب أرشفة الأمر التغييري (إلزامي):' : 'Enter VO archive reason (mandatory):',
+      { required: true, title: isAr ? 'أرشفة الأمر التغييري' : 'Archive Variation Order' }
+    );
     if (!reason || !reason.trim()) {
-      window.alert(isAr ? 'السبب مطلوب لإتمام العملية.' : 'Archive reason is required.');
       return;
     }
 
@@ -366,7 +370,7 @@ export function VOsPanel({
 
   const handleRestore = async (vo: ProjectVariationOrder) => {
     if (isProjectArchived) {
-      window.alert(isAr ? 'لا يمكن استعادة السجل لأن المشروع الأب مؤرشف.' : 'Cannot restore VO because the parent project is archived.');
+      await dialog.alert(isAr ? 'لا يمكن استعادة السجل لأن المشروع الأب مؤرشف.' : 'Cannot restore VO because the parent project is archived.');
       return;
     }
 

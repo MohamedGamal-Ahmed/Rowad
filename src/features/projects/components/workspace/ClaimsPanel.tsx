@@ -7,6 +7,7 @@ import { ProjectClaim, ClaimNegotiation, ClaimStatus } from '../../../../domain/
 import { ProjectLookupService } from '../../../../services/ProjectLookupService';
 import { RecordStatus } from '../../../../enums/RecordStatus';
 import { ClaimLifecycleValidator } from '../../../../business-rules/ClaimLifecycleValidator';
+import { useDialog } from '../../../../components/ui/DialogProvider';
 
 interface ClaimsPanelProps {
   lang: 'ar' | 'en';
@@ -25,6 +26,7 @@ export function ClaimsPanel({
 }: ClaimsPanelProps) {
   const isAr = lang === 'ar';
   const lookupService = ProjectLookupService.getInstance();
+  const dialog = useDialog();
 
   const [claims, setClaims] = useState<ProjectClaim[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -73,7 +75,7 @@ export function ClaimsPanel({
     if (!claimNumber.trim()) return;
 
     if (isProjectArchived) {
-      window.alert(isAr ? 'لا يمكن تعديل السجلات لأن المشروع مؤرشف حالياً.' : 'Cannot save changes because the project is currently archived.');
+      await dialog.alert(isAr ? 'لا يمكن تعديل السجلات لأن المشروع مؤرشف حالياً.' : 'Cannot save changes because the project is currently archived.');
       return;
     }
 
@@ -81,8 +83,8 @@ export function ClaimsPanel({
     if (editingClaim && editingClaim.status !== status) {
       const allowed = ClaimLifecycleValidator.isTransitionAllowed(editingClaim.status, status);
       if (!allowed) {
-        window.alert(isAr 
-          ? `انتقال غير مسموح به للحالة من: ${editingClaim.status} إلى ${status}` 
+        await dialog.alert(isAr
+          ? `انتقال غير مسموح به للحالة من: ${editingClaim.status} إلى ${status}`
           : `Illegal transition blocked from state: ${editingClaim.status} to ${status}`
         );
         return;
@@ -154,9 +156,9 @@ export function ClaimsPanel({
     setNegotiations(negotiations.filter(n => n.id !== id));
   };
 
-  const startCreate = () => {
+  const startCreate = async () => {
     if (isProjectArchived) {
-      window.alert(isAr ? 'المشروع مؤرشف للقراءة فقط.' : 'Project is archived (Read-Only).');
+      await dialog.alert(isAr ? 'المشروع مؤرشف للقراءة فقط.' : 'Project is archived (Read-Only).');
       return;
     }
     resetForm();
@@ -164,9 +166,9 @@ export function ClaimsPanel({
     setShowForm(true);
   };
 
-  const startEdit = (claim: ProjectClaim) => {
+  const startEdit = async (claim: ProjectClaim) => {
     if (isProjectArchived) {
-      window.alert(isAr ? 'المشروع مؤرشف للقراءة فقط.' : 'Project is archived (Read-Only).');
+      await dialog.alert(isAr ? 'المشروع مؤرشف للقراءة فقط.' : 'Project is archived (Read-Only).');
       return;
     }
     loadClaimIntoForm(claim);
@@ -225,13 +227,15 @@ export function ClaimsPanel({
 
     // Restrict archive rule: Block if status is in active Negotiation
     if (claim.status === 'Negotiation') {
-      window.alert(isAr ? 'لا يمكن أرشفة مطالبة قيد التفاوض والمراجعة النشطة.' : 'Cannot archive a claim while it is actively in negotiation.');
+      await dialog.alert(isAr ? 'لا يمكن أرشفة مطالبة قيد التفاوض والمراجعة النشطة.' : 'Cannot archive a claim while it is actively in negotiation.');
       return;
     }
 
-    const reason = window.prompt(isAr ? 'أدخل سبب أرشفة المطالبة (إلزامي):' : 'Enter Claim archive reason (mandatory):');
+    const reason = await dialog.promptText(
+      isAr ? 'أدخل سبب أرشفة المطالبة (إلزامي):' : 'Enter Claim archive reason (mandatory):',
+      { required: true, title: isAr ? 'أرشفة المطالبة' : 'Archive Claim' }
+    );
     if (!reason || !reason.trim()) {
-      window.alert(isAr ? 'السبب مطلوب لإتمام العملية.' : 'Archive reason is required.');
       return;
     }
 
@@ -260,7 +264,7 @@ export function ClaimsPanel({
 
   const handleRestore = async (claim: ProjectClaim) => {
     if (isProjectArchived) {
-      window.alert(isAr ? 'لا يمكن استعادة السجل لأن المشروع الأب مؤرشف.' : 'Cannot restore Claim because the parent project is archived.');
+      await dialog.alert(isAr ? 'لا يمكن استعادة السجل لأن المشروع الأب مؤرشف.' : 'Cannot restore Claim because the parent project is archived.');
       return;
     }
 

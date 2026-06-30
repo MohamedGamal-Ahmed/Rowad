@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Paperclip, FileText, Download } from 'lucide-react';
 import { Project, ContextualAttachment } from '../../../../domain/projects/Project';
 import { ProjectLookupService } from '../../../../services/ProjectLookupService';
+import { useDialog } from '../../../../components/ui/DialogProvider';
 
 interface AttachmentsPanelProps {
   project: Project;
@@ -18,6 +19,7 @@ export function AttachmentsPanel({
 }: AttachmentsPanelProps) {
   const isAr = lang === 'ar';
   const projectRepo = ProjectLookupService.getInstance();
+  const dialog = useDialog();
   const [isDragging, setIsDragging] = useState(false);
 
   const handleMockUpload = async () => {
@@ -88,7 +90,7 @@ export function AttachmentsPanel({
               </div>
 
               <button 
-                onClick={() => alert('Downloading file is in process...')}
+                onClick={() => dialog.toast(isAr ? 'جاري تحميل الملف...' : 'Downloading file is in process...', 'info')}
                 className="p-2 border border-slate-200 dark:border-slate-850 bg-white dark:bg-slate-900 hover:bg-slate-50 text-slate-500 rounded-lg shrink-0 cursor-pointer"
               >
                 <Download className="w-4 h-4" />

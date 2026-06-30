@@ -7,6 +7,7 @@ import { ProjectNOC } from '../../../../domain/projects/Project';
 import { ProjectLookupService } from '../../../../services/ProjectLookupService';
 import { RecordStatus } from '../../../../enums/RecordStatus';
 import { ContextualAttachmentsList } from './ContextualAttachmentsList';
+import { useDialog } from '../../../../components/ui/DialogProvider';
 
 interface NOCsPanelProps {
   lang: 'ar' | 'en';
@@ -25,6 +26,7 @@ export function NOCsPanel({
 }: NOCsPanelProps) {
   const isAr = lang === 'ar';
   const lookupService = ProjectLookupService.getInstance();
+  const dialog = useDialog();
 
   const [nocs, setNocs] = useState<ProjectNOC[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -39,6 +41,7 @@ export function NOCsPanel({
   const [expiryDate, setExpiryDate] = useState('');
   const [status, setStatus] = useState('Pending');
   const [remarks, setRemarks] = useState('');
+  const [dateError, setDateError] = useState('');
 
   // NOC Expiry Helper Logic
   const isExpired = (expDate: string | undefined): boolean => {
@@ -83,10 +86,21 @@ export function NOCsPanel({
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    setDateError('');
     if (!nocNumber.trim() || !nocAuthority.trim()) return;
 
     if (isProjectArchived) {
-      window.alert(isAr ? 'لا يمكن تعديل السجلات لأن المشروع مؤرشف حالياً.' : 'Cannot save changes because the project is currently archived.');
+      await dialog.alert(isAr ? 'لا يمكن تعديل السجلات لأن المشروع مؤرشف حالياً.' : 'Cannot save changes because the project is currently archived.');
+      return;
+    }
+
+    // Expiry Date must always be after Application Date (BUG-NOC-001)
+    if (expiryDate && applicationDate && new Date(expiryDate).getTime() <= new Date(applicationDate).getTime()) {
+      setDateError(
+        isAr
+          ? 'تاريخ انتهاء الصلاحية يجب أن يكون بعد تاريخ تقديم الطلب.'
+          : 'Expiry date must be after the application date.'
+      );
       return;
     }
 
@@ -127,9 +141,9 @@ export function NOCsPanel({
     }
   };
 
-  const startCreate = () => {
+  const startCreate = async () => {
     if (isProjectArchived) {
-      window.alert(isAr ? 'المشروع مؤرشف للقراءة فقط.' : 'Project is archived (Read-Only).');
+      await dialog.alert(isAr ? 'المشروع مؤرشف للقراءة فقط.' : 'Project is archived (Read-Only).');
       return;
     }
     resetForm();
@@ -137,9 +151,9 @@ export function NOCsPanel({
     setShowForm(true);
   };
 
-  const startEdit = (noc: ProjectNOC) => {
+  const startEdit = async (noc: ProjectNOC) => {
     if (isProjectArchived) {
-      window.alert(isAr ? 'المشروع مؤرشف للقراءة فقط.' : 'Project is archived (Read-Only).');
+      await dialog.alert(isAr ? 'المشروع مؤرشف للقراءة فقط.' : 'Project is archived (Read-Only).');
       return;
     }
     loadNocIntoForm(noc);
@@ -162,6 +176,7 @@ export function NOCsPanel({
     setExpiryDate(noc.expiryDate || '');
     setStatus(noc.status);
     setRemarks(noc.remarks || '');
+    setDateError('');
   };
 
   const resetForm = () => {
@@ -173,14 +188,17 @@ export function NOCsPanel({
     setExpiryDate('');
     setStatus('Pending');
     setRemarks('');
+    setDateError('');
   };
 
   const handleArchive = async (noc: ProjectNOC) => {
     if (isProjectArchived) return;
 
-    const reason = window.prompt(isAr ? 'أدخل سبب أرشفة التصريح (إلزامي):' : 'Enter NOC archive reason (mandatory):');
+    const reason = await dialog.promptText(
+      isAr ? 'أدخل سبب أرشفة التصريح (إلزامي):' : 'Enter NOC archive reason (mandatory):',
+      { required: true, title: isAr ? 'أرشفة التصريح' : 'Archive NOC' }
+    );
     if (!reason || !reason.trim()) {
-      window.alert(isAr ? 'السبب مطلوب لإتمام العملية.' : 'Archive reason is required.');
       return;
     }
 
@@ -209,7 +227,7 @@ export function NOCsPanel({
 
   const handleRestore = async (noc: ProjectNOC) => {
     if (isProjectArchived) {
-      window.alert(isAr ? 'لا يمكن استعادة السجل لأن المشروع الأب مؤرشف.' : 'Cannot restore NOC because the parent project is archived.');
+      await dialog.alert(isAr ? 'لا يمكن استعادة السجل لأن المشروع الأب مؤرشف.' : 'Cannot restore NOC because the parent project is archived.');
       return;
     }
 
@@ -358,9 +376,15 @@ export function NOCsPanel({
                 type="date"
                 disabled={formMode === 'view'}
                 value={expiryDate}
-                onChange={e => setExpiryDate(e.target.value)}
-                className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg text-slate-800 focus:outline-none"
+                onChange={e => { setExpiryDate(e.target.value); setDateError(''); }}
+                className={`w-full p-2.5 bg-slate-50 dark:bg-slate-950 border rounded-lg text-slate-800 focus:outline-none ${dateError ? 'border-red-400 ring-1 ring-red-300' : 'border-slate-200 dark:border-slate-850'}`}
               />
+              {dateError && (
+                <p className="text-[10px] font-bold text-red-600 flex items-center gap-1 pt-0.5">
+                  <ShieldAlert className="w-3 h-3" />
+                  <span>{dateError}</span>
+                </p>
+              )}
             </div>
 
           </div>

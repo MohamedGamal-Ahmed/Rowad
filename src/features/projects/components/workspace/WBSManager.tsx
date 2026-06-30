@@ -6,6 +6,7 @@ import {
 import { WBSPackage } from '../../../../domain/projects/Project';
 import { ProjectRepository } from '../../../../repositories/ProjectRepository';
 import { BiText } from '../../../../components/BiText';
+import { useDialog } from '../../../../components/ui/DialogProvider';
 
 interface WBSManagerProps {
   lang: 'ar' | 'en';
@@ -20,6 +21,7 @@ export function WBSManager({
 }: WBSManagerProps) {
   const isAr = lang === 'ar';
   const projectRepo = new ProjectRepository();
+  const dialog = useDialog();
 
   const [wbsList, setWbsList] = useState<WBSPackage[]>([]);
   const [collapsedNodes, setCollapsedNodes] = useState<Record<string, boolean>>({});
@@ -98,11 +100,15 @@ export function WBSManager({
   };
 
   const handleDeletePackage = async (id: string, codeStr: string) => {
-    if (confirm(isAr ? `هل أنت متأكد من حذف الحزمة ${codeStr}؟` : `Are you sure you want to delete package ${codeStr}?`)) {
+    const confirmed = await dialog.confirm(
+      isAr ? `هل أنت متأكد من حذف الحزمة ${codeStr}؟` : `Are you sure you want to delete package ${codeStr}?`,
+      { danger: true, title: isAr ? 'حذف حزمة عمل' : 'Delete WBS Package', confirmLabel: isAr ? 'حذف' : 'Delete' }
+    );
+    if (confirmed) {
       // Check if it has children
       const hasChildren = wbsList.some(w => w.parentId === id);
       if (hasChildren) {
-        alert(isAr ? 'لا يمكن حذف حزمة تحتوي على حزم فرعية.' : 'Cannot delete a WBS package that has sub-packages.');
+        await dialog.alert(isAr ? 'لا يمكن حذف حزمة تحتوي على حزم فرعية.' : 'Cannot delete a WBS package that has sub-packages.');
         return;
       }
 

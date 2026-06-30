@@ -2,6 +2,40 @@
 
 All notable changes to the **ROWAD Enterprise Platform** will be documented in this file.
 
+## [1.3.1] - 2026-06-30
+
+Development Sprint: Sprint 3.0.1 — Hotfix (completes remaining Sprint 3 scope + fixes Release Blockers found by the v1.3.0 RC1 Live QA Audit, `ROWAD-Enterprise-QA-Report-2026-06-29.md`). Architecture, business rules, and ADRs remained frozen; no new entities, repositories, or modules.
+
+### Fixed (Critical — Release Blockers)
+- **BUG-IPC-001 — PAID IPC with zero financials**: `IpcValidator` now requires `certifiedGrossValue` to be strictly greater than zero (not just non-negative) once an IPC reaches `Certified`/`Partially Paid`/`Paid` status, preventing a certificate from being saved as fully paid with no certified value, retention, recovery, or payment recorded. Traced the existing corrupted record (`IPC-EASTOWN-14`) to incomplete seed data predating the Sprint 3A commercial fields — backfilled `certifiedGrossValue`, `retentionDeduction`, `advanceRecovery`, `withholdingTax`, `netCertifiedAmount`, and a matching `Payment` record consistent with the existing seed remarks ("net of standard retention and advance recovery").
+- **BUG-IPC-002 — Net > Gross accepted**: `IpcValidator` now rejects `invoiceNetValue > invoiceGrossValue`, and (defensively) `netCertifiedAmount > certifiedGrossValue` once certified.
+- **BUG-IPC-003 — Payment > Net Certified accepted**: Removed the `&& netCertified > 0` exception in `IpcValidator`'s payment-cap check — an IPC with no certified value can no longer accept any payment. Added an inline check in `IPCsPanel.handleAddPayment` so this is caught immediately when the payment is recorded, not only at final IPC save.
+- **BUG-IPC-005 — IPC form missing Retention/Advance Recovery/WHT fields**: These fields were already implemented in `CalculationService`/`IpcValidator` since Sprint 3A but were rendered conditionally (only once status was Certified/Partially Paid/Paid). A brand-new IPC defaults to `Draft`, so the fields were invisible exactly as the audit observed. The "Consultant Certification & Deductions" block is now always visible in the IPC form; required-ness is still enforced by `IpcValidator` only once the record reaches a certified-stage status.
+
+### Fixed (Major)
+- **BUG-NOC-001 — Expiry Date before Application Date accepted**: `NOCsPanel` now validates Expiry Date > Application Date at save time, with an inline field-level error shown directly under the Expiry Date input (red border + message), blocking save until corrected.
+- **BUG-SUB-002 — Outstanding Commitment not displayed**: Added an "Outstanding Commitment" line (`Total Subcontract Amount − Till Date Invoiced`) to the subcontract card in `SubcontractorsPanel`, computed as a derived display value (not a new stored field).
+- **BUG-IPC-004 / BUG-SUB-004 — "Missing" delete confirmation dialogs**: These were not missing — `window.confirm()` / `window.prompt()` calls already existed, but native browser dialogs block the JS thread and are invisible to the Live QA browser-automation tooling, which is why they read as absent. Resolved by Phase 5 below (in-system dialogs are fully visible to automation and assistive tech).
+
+### Added (Infrastructure — Shared UI Dialog System)
+- New `src/components/ui/` module:
+  - `DialogProvider.tsx` — Context provider + `useDialog()` hook exposing Promise-based `alert()`, `confirm()`, `promptText()`, and `toast()`.
+  - `AlertDialog.tsx`, `ConfirmDialog.tsx` (doubles as the prompt-replacement input mode), `Toast.tsx`, `FieldValidation.tsx`.
+- Mounted `<DialogProvider>` at the application root (`main.tsx`), wrapping `<App />`.
+- Replaced **every** `window.alert()`, `window.confirm()`, and `window.prompt()` call across the codebase — 14 files, ~58 call sites: `IPCsPanel`, `NOCsPanel`, `VOsPanel`, `ClaimsPanel`, `MeetingsPanel`, `SubcontractorsPanel`, `DocumentsPanel`, `WBSManager`, `ContextualAttachmentsList`, `AttachmentsPanel`, `ProjectWorkspace`, `ProjectList`, `Settings`, `DocumentControl` — with the in-system equivalents. Archive-reason prompts now validate "required" inline inside the dialog itself instead of via a follow-up alert.
+
+### Changed (UI Clarification)
+- **BUG-SUB-001 re-classified**: The reported "Progress = 0%" defect is not a calculation bug — the "Progress" badge on the subcontract card reads `completionPercentage`, a manually-entered field, not a value derived from `tillDateInvoicedAmount / totalSubcontractAmount`. Renamed the badge label to "Physical Progress" (bilingual) to remove the ambiguity. No calculation changed; a derived "Financial Progress" metric was explicitly scoped out of this hotfix.
+
+### Verified / Re-checked, Not Changed
+- **BUG-NOC-002 — "No archive button"**: Re-inspected `NOCsPanel`; the Archive button and `handleArchive` handler already exist and are wired correctly. Flagged for re-verification in the next Live QA pass rather than re-implemented blind.
+- **BUG-VO-001 — VO status dropdown shows all options**: Confirmed and left as-is — UX-only, backend state-machine enforcement (`VOLifecycleValidator`) already blocks illegal transitions server-side. Deferred to Sprint 6 (Enterprise UX Polish).
+
+### Deferred (Future Sprint Recommendations)
+- Subcontract Administration module expansion (Registry / Contract Reviews / Timeline / Budget / Correspondence) — candidate for Sprint 4, pending a scoping decision against the existing Correspondence forward-compatibility module (`CLAUDE.md` ch. 12) to avoid duplicate entities/modules.
+- Derived "Financial Progress" metric for subcontracts.
+- BUG-NOC-003 (auto-expire NOC status) — Minor, not in this hotfix's approved task list.
+
 ## [1.3.0] - 2026-06-30
 
 Development Sprints:

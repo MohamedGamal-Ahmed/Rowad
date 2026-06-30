@@ -8,6 +8,7 @@ import {
 import { Project } from '../../../domain/projects/Project';
 import { BiText } from '../../../components/BiText';
 import { ProjectKpiBoard } from './ProjectKpiBoard';
+import { useDialog } from '../../../components/ui/DialogProvider';
 
 interface ProjectListProps {
   projects: Project[];
@@ -31,7 +32,8 @@ export function ProjectList({
   onRestoreProject
 }: ProjectListProps) {
   const isAr = lang === 'ar';
-  
+  const dialog = useDialog();
+
   // Grid configuration states
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -502,20 +504,15 @@ export function ProjectList({
                           ) : (
                             onArchiveProject && (
                               <button
-                                onClick={() => {
-                                  const reason = window.prompt(
-                                    isAr 
-                                      ? 'أدخل سبب أرشفة المشروع (إلزامي):' 
-                                      : 'Enter project archive reason (mandatory):'
+                                onClick={async () => {
+                                  const reason = await dialog.promptText(
+                                    isAr
+                                      ? 'أدخل سبب أرشفة المشروع (إلزامي):'
+                                      : 'Enter project archive reason (mandatory):',
+                                    { required: true, title: isAr ? 'أرشفة المشروع' : 'Archive Project' }
                                   );
                                   if (reason && reason.trim()) {
                                     onArchiveProject(p, reason.trim());
-                                  } else if (reason !== null) {
-                                    window.alert(
-                                      isAr 
-                                        ? 'يجب إدخال سبب الأرشفة لإتمام العملية.' 
-                                        : 'Archive reason is required.'
-                                    );
                                   }
                                 }}
                                 className="p-1.5 bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-600 rounded-lg transition-all cursor-pointer"

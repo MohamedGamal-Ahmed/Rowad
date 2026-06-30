@@ -14,6 +14,7 @@ import { Contractor, ScopeOfWork, DocumentType } from '../../../domain/master/Ma
 import { RecordStatus } from '../../../enums/RecordStatus';
 import { BiText } from '../../../components/BiText';
 import { FinancialsCalculator } from '../../../business-rules/FinancialsCalculator';
+import { useDialog } from '../../../components/ui/DialogProvider';
 
 // Enterprise modular components imports
 import { ProjectDashboard } from './workspace/ProjectDashboard';
@@ -62,6 +63,7 @@ export function ProjectWorkspace({
 }: ProjectWorkspaceProps) {
   const isAr = lang === 'ar';
   const projectRepo = ProjectLookupService.getInstance();
+  const dialog = useDialog();
 
   const getFinancialSettings = () => {
     const saved = localStorage.getItem('pmo_enterprise_settings');
@@ -320,7 +322,11 @@ export function ProjectWorkspace({
   };
 
   const handleDeleteNOC = async (id: string, code: string) => {
-    if (!window.confirm(isAr ? 'هل أنت متأكد من حذف هذا التصريح؟' : 'Are you sure you want to delete this permit?')) return;
+    const confirmed = await dialog.confirm(
+      isAr ? 'هل أنت متأكد من حذف هذا التصريح؟' : 'Are you sure you want to delete this permit?',
+      { danger: true, title: isAr ? 'حذف التصريح' : 'Delete NOC', confirmLabel: isAr ? 'حذف' : 'Delete' }
+    );
+    if (!confirmed) return;
     await projectRepo.deleteNOC(id);
     await projectRepo.addHistory(project!.id, 'NOC Deleted', 'System', `Deleted NOC Permit: ${code}`, 'NOC', id, code);
     reloadAllProjectData();

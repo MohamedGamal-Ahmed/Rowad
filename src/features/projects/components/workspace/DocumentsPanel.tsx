@@ -7,6 +7,7 @@ import { ProjectLookupService } from '../../../../services/ProjectLookupService'
 import { DocumentType } from '../../../../domain/master/MasterData';
 import { RecordStatus } from '../../../../enums/RecordStatus';
 import { ContextualAttachmentsList } from './ContextualAttachmentsList';
+import { useDialog } from '../../../../components/ui/DialogProvider';
 
 interface DocumentsPanelProps {
   project: Project;
@@ -32,6 +33,7 @@ export function DocumentsPanel({
   setFocusedRecordId
 }: DocumentsPanelProps) {
   const isAr = lang === 'ar';
+  const dialog = useDialog();
   const projectRepo = ProjectLookupService.getInstance();
 
   const [masterDocTypes, setMasterDocTypes] = useState<DocumentType[]>([]);
@@ -190,7 +192,7 @@ export function DocumentsPanel({
     if (!newRevVersion.trim()) return;
 
     if (doc.isLocked && doc.checkedOutBy !== 'Current User') {
-      window.alert(isAr ? 'المستند مقفل بواسطة مستخدم آخر.' : 'This document is locked by another user.');
+      await dialog.alert(isAr ? 'المستند مقفل بواسطة مستخدم آخر.' : 'This document is locked by another user.');
       return;
     }
 

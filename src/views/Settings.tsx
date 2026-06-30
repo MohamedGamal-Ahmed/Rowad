@@ -6,6 +6,7 @@ import {
 import { BiText } from '../components/BiText';
 import { Settings } from '../domain/administration/Settings';
 import { SettingsValidator } from '../validators/SettingsValidator';
+import { useDialog } from '../components/ui/DialogProvider';
 
 interface SettingsViewProps {
   lang: 'ar' | 'en';
@@ -15,7 +16,8 @@ interface SettingsViewProps {
 
 export function SettingsView({ lang, settings, onUpdateSettings }: SettingsViewProps) {
   const isAr = lang === 'ar';
-  
+  const dialog = useDialog();
+
   // Local form state initialized with current active settings
   const [localSettings, setLocalSettings] = useState<Settings>(() => ({
     ...settings,
@@ -104,8 +106,12 @@ export function SettingsView({ lang, settings, onUpdateSettings }: SettingsViewP
     }));
   };
 
-  const resetToDefaults = () => {
-    if (window.confirm(isAr ? 'هل أنت متأكد من إعادة تعيين كافة قيم الإعدادات إلى القيم الافتراضية للشركة؟' : 'Are you sure you want to restore default corporate rules?')) {
+  const resetToDefaults = async () => {
+    const confirmed = await dialog.confirm(
+      isAr ? 'هل أنت متأكد من إعادة تعيين كافة قيم الإعدادات إلى القيم الافتراضية للشركة؟' : 'Are you sure you want to restore default corporate rules?',
+      { danger: true, title: isAr ? 'إعادة تعيين الإعدادات' : 'Reset Settings' }
+    );
+    if (confirmed) {
       setLocalSettings({
         id: 'admin-settings',
         userId: 'admin',

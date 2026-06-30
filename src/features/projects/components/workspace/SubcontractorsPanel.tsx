@@ -5,6 +5,7 @@ import { ProjectLookupService } from '../../../../services/ProjectLookupService'
 import { Contractor, ScopeOfWork } from '../../../../domain/master/MasterData';
 import { RecordStatus } from '../../../../enums/RecordStatus';
 import { ContextualAttachmentsList } from './ContextualAttachmentsList';
+import { useDialog } from '../../../../components/ui/DialogProvider';
 
 interface SubcontractorsPanelProps {
   project: Project;
@@ -31,6 +32,7 @@ export function SubcontractorsPanel({
 }: SubcontractorsPanelProps) {
   const isAr = lang === 'ar';
   const projectRepo = ProjectLookupService.getInstance();
+  const dialog = useDialog();
 
   const [masterContractors, setMasterContractors] = useState<Contractor[]>([]);
   const [masterScopes, setMasterScopes] = useState<ScopeOfWork[]>([]);
@@ -101,28 +103,28 @@ export function SubcontractorsPanel({
     if (!project || !subNum || !subCtrId || !subScopeId) return;
 
     if (project.recordStatus === 'Archived') {
-      window.alert(isAr ? 'لا يمكن تعديل السجلات لأن المشروع مؤرشف حالياً.' : 'Cannot save changes because the project is currently archived.');
+      await dialog.alert(isAr ? 'لا يمكن تعديل السجلات لأن المشروع مؤرشف حالياً.' : 'Cannot save changes because the project is currently archived.');
       return;
     }
 
     // Commercial validations
     if (subTotalAmt <= 0) {
-      window.alert(isAr ? 'خطأ: قيمة العقد الكلية يجب أن تكون أكبر من صفر.' : 'Error: Total Subcontract Amount must be greater than zero.');
+      await dialog.alert(isAr ? 'خطأ: قيمة العقد الكلية يجب أن تكون أكبر من صفر.' : 'Error: Total Subcontract Amount must be greater than zero.');
       return;
     }
 
     if (subInvAmt < 0) {
-      window.alert(isAr ? 'خطأ: المبالغ المفوترة لا يمكن أن تكون قيمة سالبة.' : 'Error: Till Date Invoiced Amount cannot be negative.');
+      await dialog.alert(isAr ? 'خطأ: المبالغ المفوترة لا يمكن أن تكون قيمة سالبة.' : 'Error: Till Date Invoiced Amount cannot be negative.');
       return;
     }
 
     if (subInvAmt > subTotalAmt) {
-      window.alert(isAr ? 'خطأ: المبالغ المفوترة لا يمكن أن تتجاوز القيمة الكلية للعقد من الباطن.' : 'Error: Till Date Invoiced Amount cannot exceed Total Subcontract Amount.');
+      await dialog.alert(isAr ? 'خطأ: المبالغ المفوترة لا يمكن أن تتجاوز القيمة الكلية للعقد من الباطن.' : 'Error: Till Date Invoiced Amount cannot exceed Total Subcontract Amount.');
       return;
     }
 
     if (subCompPct < 0 || subCompPct > 100) {
-      window.alert(isAr ? 'خطأ: نسبة الإنجاز يجب أن تكون بين 0 و 100.' : 'Error: Completion Percentage must be between 0 and 100.');
+      await dialog.alert(isAr ? 'خطأ: نسبة الإنجاز يجب أن تكون بين 0 و 100.' : 'Error: Completion Percentage must be between 0 and 100.');
       return;
     }
 
@@ -137,8 +139,8 @@ export function SubcontractorsPanel({
     const projectBaseline = project.revisedContractValue ?? project.signedContractValue;
 
     if (otherSubsSum + subTotalAmt > projectBaseline) {
-      window.alert(isAr 
-        ? `خطأ: مجموع ميزانية عقود الباطن (${(otherSubsSum + subTotalAmt).toLocaleString()}) سيتجاوز القيمة المعتمدة لموازنة المشروع (${projectBaseline.toLocaleString()}).` 
+      await dialog.alert(isAr
+        ? `خطأ: مجموع ميزانية عقود الباطن (${(otherSubsSum + subTotalAmt).toLocaleString()}) سيتجاوز القيمة المعتمدة لموازنة المشروع (${projectBaseline.toLocaleString()}).`
         : `Error: The sum of all subcontracts (${(otherSubsSum + subTotalAmt).toLocaleString()}) will exceed the project commercial baseline (${projectBaseline.toLocaleString()}).`
       );
       return;
@@ -191,7 +193,12 @@ export function SubcontractorsPanel({
   const handleDeleteSubcontract = async (sub: ProjectSubcontract) => {
     if (project.recordStatus === 'Archived') return;
 
-    if (confirm(isAr ? `هل أنت متأكد من حذف العقد ${sub.subcontractNumber} نهائياً؟` : `Are you sure you want to delete subcontract ${sub.subcontractNumber} permanently?`)) {
+    const confirmed = await dialog.confirm(
+      isAr ? `هل أنت متأكد من حذف العقد ${sub.subcontractNumber} نهائياً؟` : `Are you sure you want to delete subcontract ${sub.subcontractNumber} permanently?`,
+      { danger: true, title: isAr ? 'حذف عقد الباطن' : 'Delete Subcontract', confirmLabel: isAr ? 'حذف' : 'Delete' }
+    );
+
+    if (confirmed) {
       const success = await projectRepo.deleteSubcontract(sub.id);
       if (success) {
         await projectRepo.addHistory(
@@ -400,7 +407,7 @@ export function SubcontractorsPanel({
                     <span className="font-mono text-[9px] text-slate-500 bg-white dark:bg-slate-900 border px-2 py-0.5 rounded font-bold">{sub.subcontractNumber}</span>
                     <div className="flex items-center gap-2">
                       <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/50 text-[10px] font-bold rounded-full font-sans uppercase">
-                        Progress {sub.completionPercentage}%
+                        {isAr ? 'نسبة الإنجاز الفعلي' : 'Physical Progress'} {sub.completionPercentage}%
                       </span>
                       
                       {project.recordStatus !== 'Archived' && (
@@ -467,6 +474,12 @@ export function SubcontractorsPanel({
                     <div>
                       <span className="text-[10px] text-slate-400 font-sans block">{isAr ? 'المصروف الفعلي لغاية اليوم' : 'Total Invoiced'}</span>
                       <p className="font-bold text-slate-800 dark:text-slate-200">{formatMoney(sub.tillDateInvoicedAmount, project.currency)}</p>
+                    </div>
+                    <div className="col-span-2 pt-1 border-t border-slate-150 dark:border-slate-850">
+                      <span className="text-[10px] text-slate-400 font-sans block">{isAr ? 'الالتزام المتبقي (الرصيد غير المفوتر)' : 'Outstanding Commitment'}</span>
+                      <p className="font-bold text-amber-600 dark:text-amber-400">
+                        {formatMoney(Math.max(0, sub.totalSubcontractAmount - sub.tillDateInvoicedAmount), project.currency)}
+                      </p>
                     </div>
                   </div>
 

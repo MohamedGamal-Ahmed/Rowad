@@ -7,6 +7,7 @@ import { ProjectMeeting } from '../../../../domain/projects/Project';
 import { ProjectLookupService } from '../../../../services/ProjectLookupService';
 import { RecordStatus } from '../../../../enums/RecordStatus';
 import { BiText } from '../../../../components/BiText';
+import { useDialog } from '../../../../components/ui/DialogProvider';
 
 interface MeetingsPanelProps {
   lang: 'ar' | 'en';
@@ -25,6 +26,7 @@ export function MeetingsPanel({
 }: MeetingsPanelProps) {
   const isAr = lang === 'ar';
   const lookupService = ProjectLookupService.getInstance();
+  const dialog = useDialog();
 
   const [meetings, setMeetings] = useState<ProjectMeeting[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -115,7 +117,7 @@ export function MeetingsPanel({
 
     // Data Integrity Check: Ensure parent project is active before adding/editing
     if (isProjectArchived) {
-      window.alert(isAr ? 'لا يمكن تعديل السجلات لأن المشروع مؤرشف حالياً.' : 'Cannot save changes because the project is currently archived.');
+      await dialog.alert(isAr ? 'لا يمكن تعديل السجلات لأن المشروع مؤرشف حالياً.' : 'Cannot save changes because the project is currently archived.');
       return;
     }
 
@@ -163,9 +165,9 @@ export function MeetingsPanel({
     }
   };
 
-  const startCreate = () => {
+  const startCreate = async () => {
     if (isProjectArchived) {
-      window.alert(isAr ? 'المشروع مؤرشف للقراءة فقط.' : 'Project is archived (Read-Only).');
+      await dialog.alert(isAr ? 'المشروع مؤرشف للقراءة فقط.' : 'Project is archived (Read-Only).');
       return;
     }
     resetForm();
@@ -173,9 +175,9 @@ export function MeetingsPanel({
     setShowForm(true);
   };
 
-  const startEdit = (meeting: ProjectMeeting) => {
+  const startEdit = async (meeting: ProjectMeeting) => {
     if (isProjectArchived) {
-      window.alert(isAr ? 'المشروع مؤرشف للقراءة فقط.' : 'Project is archived (Read-Only).');
+      await dialog.alert(isAr ? 'المشروع مؤرشف للقراءة فقط.' : 'Project is archived (Read-Only).');
       return;
     }
     loadMeetingIntoForm(meeting);
@@ -229,9 +231,11 @@ export function MeetingsPanel({
 
   const handleArchive = async (meeting: ProjectMeeting) => {
     if (isProjectArchived) return;
-    const reason = window.prompt(isAr ? 'أدخل سبب أرشفة الاجتماع (إلزامي):' : 'Enter meeting archive reason (mandatory):');
+    const reason = await dialog.promptText(
+      isAr ? 'أدخل سبب أرشفة الاجتماع (إلزامي):' : 'Enter meeting archive reason (mandatory):',
+      { required: true, title: isAr ? 'أرشفة الاجتماع' : 'Archive Meeting' }
+    );
     if (!reason || !reason.trim()) {
-      window.alert(isAr ? 'السبب مطلوب لإتمام العملية.' : 'Archive reason is required.');
       return;
     }
 
@@ -261,7 +265,7 @@ export function MeetingsPanel({
   const handleRestore = async (meeting: ProjectMeeting) => {
     // Restrict Restore Rule: Parent project must be active
     if (isProjectArchived) {
-      window.alert(isAr ? 'لا يمكن استعادة السجل لأن المشروع الأب مؤرشف.' : 'Cannot restore meeting because the parent project is archived.');
+      await dialog.alert(isAr ? 'لا يمكن استعادة السجل لأن المشروع الأب مؤرشف.' : 'Cannot restore meeting because the parent project is archived.');
       return;
     }
 

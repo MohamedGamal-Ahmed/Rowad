@@ -9,6 +9,7 @@ import { RecordStatus } from '../../../../enums/RecordStatus';
 import { BiText } from '../../../../components/BiText';
 import { CalculationService } from '../../../../services/CalculationService';
 import { IpcValidator } from '../../../../validators/IpcValidator';
+import { useDialog } from '../../../../components/ui/DialogProvider';
 
 interface IPCsPanelProps {
   lang: 'ar' | 'en';
@@ -27,6 +28,7 @@ export function IPCsPanel({
 }: IPCsPanelProps) {
   const isAr = lang === 'ar';
   const lookupService = ProjectLookupService.getInstance();
+  const dialog = useDialog();
 
   const [ipcs, setIpcs] = useState<ProjectIPC[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -58,6 +60,7 @@ export function IPCsPanel({
 
   // Validation feedback state
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [paymentFormError, setPaymentFormError] = useState<string>('');
 
   // Nested Payments state in memory before submit or managed locally
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -155,7 +158,7 @@ export function IPCsPanel({
     if (!ipcNumber.trim()) return;
 
     if (isProjectArchived) {
-      window.alert(isAr ? 'لا يمكن تعديل السجلات لأن المشروع مؤرشف حالياً.' : 'Cannot save changes because the project is currently archived.');
+      await dialog.alert(isAr ? 'لا يمكن تعديل السجلات لأن المشروع مؤرشف حالياً.' : 'Cannot save changes because the project is currently archived.');
       return;
     }
 
@@ -215,7 +218,20 @@ export function IPCsPanel({
 
   const handleAddPayment = (e: React.FormEvent) => {
     e.preventDefault();
+    setPaymentFormError('');
     if (payAmount <= 0) return;
+
+    // Payment amount cannot push total collections beyond the IPC's Net Certified Amount.
+    // An IPC that has not been certified yet (netCertifiedAmount = 0) cannot receive any payment.
+    const remaining = Math.max(0, netCertifiedAmount - totalPaid);
+    if (payAmount > remaining) {
+      setPaymentFormError(
+        isAr
+          ? `قيمة الدفعة (${payAmount.toLocaleString()}) تتجاوز الرصيد المستحق المتبقي (${remaining.toLocaleString()}). لا يمكن أن يتجاوز إجمالي المحصل صافي المعتمد.`
+          : `Payment amount (${payAmount.toLocaleString()}) exceeds the remaining certified balance (${remaining.toLocaleString()}). Total collected cannot exceed Net Certified Amount.`
+      );
+      return;
+    }
 
     const newPay: Payment = {
       id: `pay-${Date.now()}`,
@@ -249,9 +265,9 @@ export function IPCsPanel({
     runCalculations(certifiedGrossValue, status, updated);
   };
 
-  const startCreate = () => {
+  const startCreate = async () => {
     if (isProjectArchived) {
-      window.alert(isAr ? 'المشروع مؤرشف للقراءة فقط.' : 'Project is archived (Read-Only).');
+      await dialog.alert(isAr ? 'المشروع مؤرشف للقراءة فقط.' : 'Project is archived (Read-Only).');
       return;
     }
     resetForm();
@@ -259,9 +275,9 @@ export function IPCsPanel({
     setShowForm(true);
   };
 
-  const startEdit = (ipc: ProjectIPC) => {
+  const startEdit = async (ipc: ProjectIPC) => {
     if (isProjectArchived) {
-      window.alert(isAr ? 'المشروع مؤرشف للقراءة فقط.' : 'Project is archived (Read-Only).');
+      await dialog.alert(isAr ? 'المشروع مؤرشف للقراءة فقط.' : 'Project is archived (Read-Only).');
       return;
     }
     loadIpcIntoForm(ipc);
@@ -322,6 +338,7 @@ export function IPCsPanel({
   };
 
   const resetPaymentForm = () => {
+    setPaymentFormError('');
     setPayAmount(0);
     setPayDate(new Date().toISOString().substring(0, 10));
     setPayMethod('Bank Wire Transfer');
@@ -338,13 +355,15 @@ export function IPCsPanel({
     
     // Restrict delete rule: Block archive if Status is Paid
     if (ipc.status === 'Paid') {
-      window.alert(isAr ? 'لا يمكن أرشفة مستخلص تم صرفه بالكامل.' : 'Cannot archive an IPC that is already fully paid.');
+      await dialog.alert(isAr ? 'لا يمكن أرشفة مستخلص تم صرفه بالكامل.' : 'Cannot archive an IPC that is already fully paid.');
       return;
     }
 
-    const reason = window.prompt(isAr ? 'أدخل سبب أرشفة المستخلص (إلزامي):' : 'Enter IPC archive reason (mandatory):');
+    const reason = await dialog.promptText(
+      isAr ? 'أدخل سبب أرشفة المستخلص (إلزامي):' : 'Enter IPC archive reason (mandatory):',
+      { required: true, title: isAr ? 'أرشفة المستخلص' : 'Archive IPC' }
+    );
     if (!reason || !reason.trim()) {
-      window.alert(isAr ? 'السبب مطلوب لإتمام العملية.' : 'Archive reason is required.');
       return;
     }
 
@@ -373,7 +392,7 @@ export function IPCsPanel({
 
   const handleRestore = async (ipc: ProjectIPC) => {
     if (isProjectArchived) {
-      window.alert(isAr ? 'لا يمكن استعادة السجل لأن المشروع الأب مؤرشف.' : 'Cannot restore IPC because the parent project is archived.');
+      await dialog.alert(isAr ? 'لا يمكن استعادة السجل لأن المشروع الأب مؤرشف.' : 'Cannot restore IPC because the parent project is archived.');
       return;
     }
 
@@ -542,18 +561,24 @@ export function IPCsPanel({
 
           </div>
 
-          {(status === 'Certified' || status === 'Paid' || status === 'Partially Paid') && (
-            <div className="bg-slate-50 dark:bg-slate-950/20 p-6 rounded-2xl border border-slate-150 space-y-4">
+          <div className="bg-slate-50 dark:bg-slate-950/20 p-6 rounded-2xl border border-slate-150 space-y-4">
               <h5 className="text-[10px] font-black text-brand-navy dark:text-slate-100 uppercase border-b pb-2">
                 {isAr ? 'اعتماد الاستشاري والخصميات التجارية' : 'Consultant Certification & Deductions'}
               </h5>
-              
+              <p className="text-[10px] text-slate-400 -mt-2">
+                {isAr
+                  ? 'مطلوبة إلزاميًا فقط عند تغيير الحالة إلى معتمد / مدفوع جزئيًا / مدفوع.'
+                  : 'Required only once status is set to Certified, Partially Paid or Paid.'}
+              </p>
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1">
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase">{isAr ? 'القيمة المعتمدة الإجمالية (Certified Gross) *' : 'Certified Gross Value *'}</label>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase">
+                    {isAr ? 'القيمة المعتمدة الإجمالية (Certified Gross)' : 'Certified Gross Value'}
+                    {(status === 'Certified' || status === 'Paid' || status === 'Partially Paid') ? ' *' : ''}
+                  </label>
                   <input
                     type="number"
-                    required
                     disabled={formMode === 'view'}
                     value={certifiedGrossValue || ''}
                     onChange={e => {
@@ -646,7 +671,6 @@ export function IPCsPanel({
                 </div>
               </div>
             </div>
-          )}
 
           {/* Child Panel: Cash Payments Collected */}
           <div className="space-y-4 bg-slate-50 dark:bg-slate-950/20 p-4 rounded-2xl border border-slate-150">
@@ -754,10 +778,16 @@ export function IPCsPanel({
                   </select>
                 </div>
 
+                {paymentFormError && (
+                  <div className="sm:col-span-3 p-2.5 bg-red-50 border border-red-200 text-red-700 rounded-lg text-[10px] font-bold">
+                    {paymentFormError}
+                  </div>
+                )}
+
                 <div className="flex justify-end items-end gap-2 sm:col-span-2 pt-2">
                   <button
                     type="button"
-                    onClick={() => setShowPaymentForm(false)}
+                    onClick={() => { setShowPaymentForm(false); setPaymentFormError(''); }}
                     className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded text-xs font-bold"
                   >
                     {isAr ? 'إلغاء' : 'Cancel'}

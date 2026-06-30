@@ -380,6 +380,52 @@ Consolidate properties in the Project domain aggregate to implement a clean thre
 - **Clean Compile & Build Verification**
 - **Commercial Regression Audit**
 
+# Sprint 3.0.1 — Hotfix (Status: Completed)
+
+A Live QA Audit against v1.3.0 RC1 (`ROWAD-Enterprise-QA-Report-2026-06-29.md`) found 4 Critical and 9 Major defects, blocking release. Per CTO authorization, this is **not** Sprint 4 and **not** a new feature sprint — it completes the remaining Sprint 3 scope (IPC commercial fields were implemented in the data layer in Sprint 3A but not fully exposed/enforced in the UI) and fixes release-blocking defects found in the RC1 audit. Architecture, business rules, and ADRs remained frozen for the duration of this hotfix; no new entities, repositories, or modules were introduced.
+
+## Scope
+
+### Phase 1 — Remaining Sprint 3 Scope
+- IPC Financial Entry Form: Certified Gross / Retention / Advance Recovery / WHT / Net Certified fields (already present in `CalculationService` and the domain model since Sprint 3A) are now always visible in the IPC form regardless of status, instead of being gated behind `Certified/Partially Paid/Paid` — the gating was the root cause of BUG-IPC-005 and BUG-IPC-001 in the RC1 audit.
+
+### Phase 2 — Critical Business Rule Fixes
+- `IpcValidator`: Certified Gross must be strictly > 0 (not just ≥ 0) once status is Certified/Partially Paid/Paid — blocks PAID IPCs with zero financials at save time.
+- `IpcValidator`: Invoice Net Value can never exceed Invoice Gross Value.
+- `IpcValidator`: Net Certified Amount can never exceed Certified Gross Value (defensive, certified-stage guard).
+- `IpcValidator`: Total Paid can never exceed Net Certified Amount, including when Net Certified is 0/undefined (previously a `&& netCertified > 0` guard silently allowed unlimited payments on uncertified IPCs).
+- `IPCsPanel`: Payment amount is now validated against the remaining certified balance at the moment "Record Payment" is submitted (inline field error), not only at final IPC save.
+- Backfilled seed record `IPC-EASTOWN-14` (`ipc-2`) with consistent Certified Gross / Retention / Advance Recovery / WHT / Net Certified / Payment data — the PAID-with-zero-financials condition found in RC1 traced to incomplete seed data predating the Sprint 3A commercial fields, not a code defect.
+
+### Phase 3 — Commercial Calculations
+- `SubcontractorsPanel`: Added "Outstanding Commitment" (`Contract Value − Till Date Invoiced`) to the subcontract card, computed client-side as a derived display value (no new stored field, consistent with Reports-Never-Own-Data principle for derived figures).
+
+### Phase 4 — Validation Improvements
+- `NOCsPanel`: Expiry Date must be after Application Date, enforced at save time with an inline field-level error (red border + message under the field), replacing the previous unvalidated state.
+
+### Phase 5 — Shared UI Dialog System (Infrastructure)
+- New `src/components/ui/` module: `DialogProvider.tsx` (Context + `useDialog()` hook), `AlertDialog.tsx`, `ConfirmDialog.tsx` (also serves as the prompt-replacement input mode), `Toast.tsx`, `FieldValidation.tsx`.
+- Mounted `<DialogProvider>` at the app root (`main.tsx`).
+- Replaced every `window.alert()`, `window.confirm()`, and `window.prompt()` call across the codebase (14 files, ~58 call sites: IPCsPanel, NOCsPanel, VOsPanel, ClaimsPanel, MeetingsPanel, SubcontractorsPanel, DocumentsPanel, WBSManager, ContextualAttachmentsList, AttachmentsPanel, ProjectWorkspace, ProjectList, Settings, DocumentControl) with the in-system, Promise-based equivalents.
+- Root cause of BUG-IPC-004 / BUG-SUB-004 ("missing confirmation dialog"): the confirmation logic already existed via `window.confirm()`/`window.prompt()`, but native browser dialogs block the JS thread and are invisible to the Live QA browser-automation tooling — they were never actually missing, just unobservable to the audit tool. This was treated as a Release Blocker regardless, since native dialogs are also an accessibility and design-system inconsistency.
+
+### Phase 6 — UI Clarification
+- `SubcontractorsPanel`: Renamed the card badge from "Progress" to "Physical Progress" (bilingual). No calculation change — `completionPercentage` remains a manually-entered field, not derived from invoiced amount. Financial Progress (a derived metric) was explicitly out of scope for this hotfix.
+
+## Out of Scope (explicitly deferred)
+- Financial Progress (derived completion %) — Future Sprint candidate.
+- Subcontract Administration module expansion (Registry / Reviews / Timeline / Budget / Correspondence) — Sprint 4 candidate, pending resolution of overlap with the existing Correspondence forward-compatibility module (CLAUDE.md ch. 12).
+- VO status dropdown restriction to valid next-states only (BUG-VO-001) — UX-only, not a release blocker, deferred to Sprint 6 (Enterprise UX Polish).
+- NOC archive button (BUG-NOC-002) — re-checked during this hotfix; the Archive action/button already exists in `NOCsPanel` and is wired to `handleArchive`. Flagged for re-verification in the next Live QA pass rather than re-implemented blind.
+- NOC auto-expiry status transition (BUG-NOC-003) — Minor, not in the CTO-approved task list for this hotfix.
+- Sprint 4, Backend, Authentication, Settings redesign, any new module.
+
+## Deliverables
+- IPC/NOC/Subcontract business rule and validation fixes (Phases 1–4, 6)
+- Shared UI Dialog System infrastructure (Phase 5)
+- `CHANGELOG.md` and `ROADMAP_STATUS.md` updates
+- This Sprint.md entry
+
 # Sprint 4 — Enterprise System Settings & Policies
 
 Build the Enterprise Administration module. **Replace** "Centralized Master Registers" naming with "Enterprise System Settings & Policies". This module is **SYSTEM ADMIN ONLY**.

@@ -15,6 +15,7 @@ import { mockDocuments } from '../seed/mockData';
 import { useProjects } from '../hooks/useProjects';
 import { SearchableAutocomplete } from '../components/SearchableAutocomplete';
 import { RecordStatus } from '../enums/RecordStatus';
+import { useDialog } from '../components/ui/DialogProvider';
 
 export function DocumentControl({ 
   lang, 
@@ -28,6 +29,7 @@ export function DocumentControl({
   settings: Settings;
 }) {
   const isAr = lang === 'ar';
+  const dialog = useDialog();
   const { projects } = useProjects();
   const setDocuments = onUpdateDocuments;
   const [selectedDocId, setSelectedDocId] = useState<string | null>('D-001');
@@ -350,10 +352,10 @@ export function DocumentControl({
 
   
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!titleEn || !titleAr || !selectedProjectId) {
-      alert(isAr ? 'الرجاء اختيار المشروع وتعبئة جميع الحقول المطلوبة' : 'Please choose a project and fill in all required fields');
+      await dialog.alert(isAr ? 'الرجاء اختيار المشروع وتعبئة جميع الحقول المطلوبة' : 'Please choose a project and fill in all required fields');
       return;
     }
 

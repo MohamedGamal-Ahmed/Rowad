@@ -9,11 +9,11 @@
 
 | Field | Value |
 |-------|-------|
-| **Current Product Version** | `v1.3.0` |
-| **Current Development Sprint** | Sprint 4 — Enterprise System Settings & Policies |
+| **Current Product Version** | `v1.3.1` (pending tag) |
+| **Current Development Sprint** | Sprint 4 — Enterprise System Settings & Policies (not started — blocked on Sprint 3.0.1 re-QA) |
 | **Last Completed Product Version** | `v1.3.0` |
-| **Last Completed Development Sprint** | Sprint 3E — Commercial Domain Consolidation |
-| **Latest Git Tag** | `v1.3.0` |
+| **Last Completed Development Sprint** | Sprint 3.0.1 — Hotfix (Sprint 3 RC1 Release Blockers) |
+| **Latest Git Tag** | `v1.3.0` (`v1.3.1` pending re-QA sign-off) |
 | **Last Updated** | 2026-06-30 |
 
 ---
@@ -27,7 +27,8 @@
 | Sprint 2 | Tender & Award | ✅ Completed | 100% | `v1.2.0` |
 | Sprint 3 | Commercial Modules (IPC + VO + NOC + Subcontracts + SPR completion) | ✅ Completed | 100% | `v1.3.0` |
 | Sprint 3E | Commercial Domain Consolidation | ✅ Completed | 100% | `v1.3.0` |
-| Sprint 4 | Enterprise System Settings & Policies | ⏳ Planned | 0% | _pending v1.4.0_ |
+| Sprint 3.0.1 | Hotfix (Sprint 3 RC1 Release Blockers) | 🟡 Implementation Complete, Re-QA Pending | 100% impl. | _pending v1.3.1_ |
+| Sprint 4 | Enterprise System Settings & Policies | ⏳ Planned (blocked on Sprint 3.0.1 re-QA) | 0% | _pending v1.4.0_ |
 | Sprint 5 | Security & RBAC Foundation | ⏳ Planned | 0% | _pending v1.5.0_ |
 | Sprint 6 | Enterprise UX Polish | ⏳ Planned | 0% | _pending v1.6.0_ |
 | Sprint 7 | Backend Preparation (triggers Architecture Freeze) | ⏳ Planned | 0% | _pending v1.7.0_ |
@@ -68,9 +69,27 @@ Legend: ✅ Completed · 🟡 In Progress · ⏳ Planned · 🔴 Blocked
 | 4 | Tender Lifecycle Full State Machine | Tender Lifecycle | ✅ Completed | `TenderLifecycleValidator`, `TenderService.transitionTenderStatus()`, UI dropdown, BusinessEvent logging, seed data updated |
 | 5 | Sprint 2 Verification (lint / build / regression / report) | Exit | ✅ Completed | Passed all verification and exit tests. Committed and tagged `v1.2.0`. |
 
+## Sprint 3.0.1 — Hotfix Work Breakdown
+
+| # | QA Finding / Task | Bucket | Status | Notes |
+|---|------------------|--------|--------|-------|
+| 1 | BUG-IPC-005 — IPC form missing Retention/Recovery/WHT | Phase 1 (Sprint 3 scope completion) | ✅ Completed | Fields already existed in `CalculationService`; were gated behind status. Now always visible. |
+| 2 | BUG-IPC-002 — Net > Gross accepted | Phase 2 (Critical) | ✅ Completed | `IpcValidator`: invoiceNetValue ≤ invoiceGrossValue; netCertifiedAmount ≤ certifiedGrossValue |
+| 3 | BUG-IPC-003 — Payment > Net Certified accepted | Phase 2 (Critical) | ✅ Completed | Removed `netCertified > 0` exception; added inline check at payment-entry time |
+| 4 | BUG-IPC-001 — PAID IPC with zero financials | Phase 2 (Critical) | ✅ Completed | Validator now requires certifiedGrossValue > 0 at certified-stage; backfilled corrupted seed record `ipc-2` |
+| 5 | BUG-SUB-002 — Outstanding Commitment missing | Phase 3 | ✅ Completed | Derived display value added to `SubcontractorsPanel` card |
+| 6 | BUG-NOC-001 — Expiry before Application date accepted | Phase 4 | ✅ Completed | Inline field-level validation in `NOCsPanel` |
+| 7 | BUG-IPC-004 / BUG-SUB-004 — "Missing" confirmation dialogs | Phase 5 (Infra) | ✅ Completed | Root cause was native `window.confirm()`/`prompt()` invisible to QA automation, not missing logic. Shared Dialog System built and rolled out to all 14 affected files. |
+| 8 | BUG-SUB-001 — "Progress = 0%" | Phase 6 | ✅ Completed (re-classified) | Not a calc bug — `completionPercentage` is manual input, not derived. Label renamed to "Physical Progress". |
+| 9 | BUG-NOC-002 — No archive button | Re-checked | ✅ Verified already implemented | `handleArchive` + Archive button already present in `NOCsPanel`; not a code change. |
+| 10 | BUG-VO-001 — VO status dropdown shows all options | Deferred | ⏳ Deferred to Sprint 6 | UX-only; backend `VOLifecycleValidator` already blocks illegal transitions. |
+| 11 | Automated lint/build/regression verification | Exit | 🟡 Blocked — see Current Blockers | See blocker below. |
+
 ## Current Blockers
 
-_None yet._
+| ID | Blocker | Impact | Next Step |
+|----|---------|--------|-----------|
+| B-001 | The Cowork sandbox's mount of the project folder returned truncated/corrupted file reads when accessed via the shell in this session (confirmed: `cat` on `main.tsx` cut off mid-token; `tsc` errors traced back to files that are verified clean and complete via direct file inspection). `npm run lint` / `npm run build` could not be run reliably against the true latest source from inside this session. | Sprint Exit Criteria #2 (Type Check) and #3 (Build) for Sprint 3.0.1 are **not yet machine-verified**. | Run `npm run lint && npm run build` in a normal local/CI environment before tagging `v1.3.1`. Every changed file was manually re-read in full from the canonical source and traced for brace/JSX balance and type correctness during implementation, but this does not substitute for the compiler — treat as a hard gate before tagging. |
 
 ---
 
