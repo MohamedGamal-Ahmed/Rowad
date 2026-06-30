@@ -2,6 +2,19 @@
 
 All notable changes to the **ROWAD Enterprise Platform** will be documented in this file.
 
+## [1.1.0] - 2026-06-30
+
+Development Sprint:
+Sprint 1 – Production Stabilization
+
+### Fixed (Sprint 1 — Production Stabilization)
+- **SPR Runtime Stability**: Resolved the root cause of monthly report rendering crashes in `SprReportingEngine.tsx` by implementing complete null-safety and type-safety checks inside monthly data compilation filters.
+- **Tender Wizard Validation**: Added strict step-by-step validator logic inside `TenderWizardModal.tsx` to prevent bypassing General step required fields and Step 3 submission dates.
+- **Subcontractor Calculation Decoupling**: Decoupled subcontractor total subcontract amount, till date invoiced amount, and completion percentage in `SubcontractorsPanel.tsx` to prevent silent overrides and preserve user inputs exactly.
+- **WBS Dropdown Empty Warning**: Documented WBS limitation by rendering a warning message when a project has no WBS packages defined.
+- **Real-Time State Synchronization**: Bound `onRefresh` prop callbacks from `ProjectWorkspace.tsx` to child panels (`IPCsPanel`, `MeetingsPanel`, `ClaimsPanel`, `VOsPanel`, `NOCsPanel`), ensuring immediate page-wide React state updates upon successful repository changes.
+- **Dashboard active counts sync**: Propagated active tenders count dynamically from `App.tsx` state to update the `Sidebar` navigation badge and dashboard widgets instantly.
+
 ## [1.7.0] - 2026-06-28
 
 ### Added

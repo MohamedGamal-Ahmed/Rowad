@@ -1,5 +1,40 @@
 import { Milestone } from '../../../domain/common/Milestone';
 
+export interface TenderAssignment {
+  assignmentId: string;
+  tenderId: string;
+  employeeId: string;
+  roleId: string;
+  status: 'Active' | 'Archived';
+  assignedDate: string;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+  notes?: string;
+  createdAt: string;
+  createdBy: string;
+  modifiedAt: string;
+  modifiedBy: string;
+  archivedAt: string | null;
+  archivedBy: string | null;
+  recordStatus: 'Active' | 'Archived';
+}
+
+export interface BusinessEvent {
+  eventId: string;
+  tenderId: string;
+  timestamp: string;
+  userId: string;
+  source: 'User' | 'System' | 'Automation' | 'Import' | 'API';
+  moduleId: string;
+  entityType: string;
+  entityId: string;
+  action: string;
+  changedFields?: string[];
+  oldValue?: string;
+  newValue?: string;
+  remarks?: string;
+}
+
 export interface TenderNote {
   id: string;
   author: string;
@@ -58,6 +93,8 @@ export interface Tender {
   siteVisitDate?: string;
   technicalNotes?: string;
   milestones?: Milestone[];
+  assignments?: TenderAssignment[];
+  businessEvents?: BusinessEvent[];
 }
 
 

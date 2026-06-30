@@ -3,7 +3,6 @@ import { BilingualString } from '../common/BilingualString';
 import { TenderDocument } from '../common/TenderDocument';
 import { NoteRecord } from '../common/NoteRecord';
 import { GeneralInformation } from './GeneralInformation';
-import { AssignmentInformation } from './AssignmentInformation';
 import { TimelineInformation } from './TimelineInformation';
 import { FinancialInformation } from './FinancialInformation';
 import { StatusInformation } from './StatusInformation';
@@ -15,7 +14,6 @@ export interface Tender extends BaseEntity {
   tenderNumber: string;
   projectName: BilingualString;
   general: GeneralInformation;
-  assignments: AssignmentInformation;
   timeline: TimelineInformation;
   financials: FinancialInformation;
   status: StatusInformation;

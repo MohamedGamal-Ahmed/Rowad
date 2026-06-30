@@ -1,9 +1,9 @@
 import { 
   Client, Employer, Consultant, Contractor, ScopeOfWork, Currency, Country, Department, DocumentType, ContractType,
-  MeetingType, ProjectStatus, ClaimType, VoType, NocType, IpcType, BusinessUnit, Discipline,
+  MeetingType, ProjectStatus, ClaimType, VoType, NocType, IpcType, BusinessUnit, Discipline, Employee, Role,
   baselineClients, baselineEmployers, baselineConsultants, baselineContractors, baselineScopes, baselineCurrencies, baselineCountries, baselineDepartments, baselineDocTypes, baselineContractTypes,
   baselineMeetingTypes, baselineStatuses, baselineClaimTypes, baselineVoTypes, baselineNocTypes, baselineIpcTypes,
-  baselineBusinessUnits, baselineDisciplines
+  baselineBusinessUnits, baselineDisciplines, baselineEmployees, baselineRoles
 } from '../domain/master/MasterData';
 
 export class MasterDataRepository {
@@ -78,6 +78,14 @@ export class MasterDataRepository {
     return this.getOrSeed('master_subcontractors', baselineContractors); // Seeded with baseline contractors too
   }
 
+  public async getEmployees(): Promise<Employee[]> {
+    return this.getOrSeed('master_employees', baselineEmployees);
+  }
+
+  public async getRoles(): Promise<Role[]> {
+    return this.getOrSeed('master_roles', baselineRoles);
+  }
+
   // Highly scalable generic loaders
   public async getRegister<T>(key: string, baseline?: T[]): Promise<T[]> {
     const resolvedBaseline = baseline || this.getBaselineForKey(key) as unknown as T[] || [];
@@ -105,6 +113,8 @@ export class MasterDataRepository {
       case 'master_subcontractors': return baselineContractors;
       case 'master_businessunits': return baselineBusinessUnits;
       case 'master_disciplines': return baselineDisciplines;
+      case 'master_employees': return baselineEmployees;
+      case 'master_roles': return baselineRoles;
       default: return [];
     }
   }

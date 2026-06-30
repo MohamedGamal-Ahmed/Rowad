@@ -5,6 +5,7 @@ import { FinancialsCalculator } from '../../../../business-rules/FinancialsCalcu
 import { Clock as AppClock } from '../../../../services/Clock';
 import { HealthCalculator } from '../../../../business-rules/HealthCalculator';
 import { HealthStatus } from '../../../../enums/HealthStatus';
+import { BusinessEventRepository } from '../../../../repositories/BusinessEventRepository';
 
 interface UseOngoingTendersProps {
   list: Tender[];
@@ -183,6 +184,7 @@ export function useOngoingTenders({
   // Add notes directly into drawer state
   const handleAddNoteToTender = (id: string) => {
     if (!newNoteText.trim()) return;
+    const noteId = `note-${Date.now()}`;
     onUpdateList(prev =>
       prev.map(t => {
         if (t.id === id) {
@@ -191,7 +193,7 @@ export function useOngoingTenders({
             notes: [
               ...t.notes,
               {
-                id: `note-${Date.now()}`,
+                id: noteId,
                 author: isAr ? 'أحمد مصطفى' : 'Ahmed Mostafa',
                 date: AppClock.todayISO(),
                 text: newNoteText.trim(),
@@ -202,6 +204,22 @@ export function useOngoingTenders({
         return t;
       })
     );
+
+    // Log note creation as a business event
+    const eventRepo = new BusinessEventRepository();
+    eventRepo.logEvent({
+      eventId: `event-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`,
+      tenderId: id,
+      timestamp: new Date().toISOString(),
+      userId: isAr ? 'أحمد مصطفى' : 'Ahmed Mostafa',
+      source: 'User',
+      moduleId: 'Notes',
+      entityType: 'TenderNote',
+      entityId: noteId,
+      action: 'Tender Updated',
+      remarks: isAr ? `تمت إضافة ملاحظة هندسية` : `Added engineering note`
+    });
+
     setNewNoteText('');
     setToastAlert({
       type: 'info',
@@ -212,6 +230,8 @@ export function useOngoingTenders({
   // Add document link simulation directly to the tender record state
   const handleAddDocToTender = (id: string) => {
     if (!newDocName.trim()) return;
+    const docId = `doc-${Date.now()}`;
+    const docNameWithExt = newDocName.trim().endsWith('.pdf') ? newDocName.trim() : `${newDocName.trim()}.pdf`;
     onUpdateList(prev =>
       prev.map(t => {
         if (t.id === id) {
@@ -220,8 +240,8 @@ export function useOngoingTenders({
             documents: [
               ...t.documents,
               {
-                id: `doc-${Date.now()}`,
-                name: newDocName.trim().endsWith('.pdf') ? newDocName.trim() : `${newDocName.trim()}.pdf`,
+                id: docId,
+                name: docNameWithExt,
                 size: newDocSize || '1.8 MB',
                 link: '#',
               },
@@ -231,6 +251,22 @@ export function useOngoingTenders({
         return t;
       })
     );
+
+    // Log document upload as a business event
+    const eventRepo = new BusinessEventRepository();
+    eventRepo.logEvent({
+      eventId: `event-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`,
+      tenderId: id,
+      timestamp: new Date().toISOString(),
+      userId: isAr ? 'أحمد مصطفى' : 'Ahmed Mostafa',
+      source: 'User',
+      moduleId: 'Documents',
+      entityType: 'TenderDocument',
+      entityId: docId,
+      action: 'Document Uploaded',
+      remarks: isAr ? `تم رفع ملف: ${docNameWithExt}` : `Uploaded document: ${docNameWithExt}`
+    });
+
     setNewDocName('');
     setToastAlert({
       type: 'success',
@@ -251,6 +287,24 @@ export function useOngoingTenders({
         return t;
       })
     );
+
+    // Log bulk archive events
+    const eventRepo = new BusinessEventRepository();
+    selectedRowIds.forEach(id => {
+      eventRepo.logEvent({
+        eventId: `event-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`,
+        tenderId: id,
+        timestamp: new Date().toISOString(),
+        userId: isAr ? 'أحمد مصطفى' : 'Ahmed Mostafa',
+        source: 'User',
+        moduleId: 'Pre-Award',
+        entityType: 'Tender',
+        entityId: id,
+        action: 'Tender Archived',
+        remarks: isAr ? 'تمت أرشفة المشروع' : 'Tender Archived'
+      });
+    });
+
     setToastAlert({
       type: 'success',
       message: isAr

@@ -331,3 +331,48 @@ export const baselineDisciplines: Discipline[] = [
   { id: 'dsc-3', code: 'MEP', name: 'MEP (Mechanical/Electrical/Plumbing)', nameAr: 'الأعمال الكهروميكانيكية', status: 'Active' },
   { id: 'dsc-4', code: 'ARC', name: 'Architectural Design', nameAr: 'التصميم المعماري', status: 'Active' }
 ];
+
+export interface Employee {
+  id: string;
+  nameEn: string;
+  nameAr: string;
+  departmentId: string;
+  businessUnitId: string;
+  positionId: string;
+  status: 'Active' | 'Inactive';
+}
+
+export interface Role {
+  id: string;
+  nameEn: string;
+  nameAr: string;
+}
+
+export const baselineEmployees: Employee[] = [
+  { id: 'user-1', nameEn: 'Ahmed Mostafa', nameAr: 'أحمد مصطفى', departmentId: 'dept-2', businessUnitId: 'bu-1', positionId: 'Contracts Engineer', status: 'Active' },
+  { id: 'user-2', nameEn: 'Eng. Khalid Al-Saeed', nameAr: 'المهندس خالد السعيد', departmentId: 'dept-1', businessUnitId: 'bu-1', positionId: 'Tender Coordinator', status: 'Active' },
+  { id: 'user-3', nameEn: 'Eng. Sherif Amin', nameAr: 'المهندس شريف أمين', departmentId: 'dept-1', businessUnitId: 'bu-1', positionId: 'Tender Coordinator', status: 'Active' },
+  { id: 'user-4', nameEn: 'Eng. Yasmin Omar', nameAr: 'مهندسة ياسمين عمر', departmentId: 'dept-1', businessUnitId: 'bu-1', positionId: 'Tender Coordinator', status: 'Active' },
+  { id: 'user-5', nameEn: 'Fatma Amer', nameAr: 'فاطمة عامر', departmentId: 'dept-2', businessUnitId: 'bu-1', positionId: 'Contracts Engineer', status: 'Active' },
+  { id: 'user-6', nameEn: 'Salim Mansoor', nameAr: 'سليم منصور', departmentId: 'dept-2', businessUnitId: 'bu-1', positionId: 'Contracts Engineer', status: 'Active' },
+  { id: 'user-7', nameEn: 'Eng. Salem Al-Awadi', nameAr: 'المهندس سالم العوضي', departmentId: 'dept-1', businessUnitId: 'bu-1', positionId: 'Tender Study Engineer', status: 'Active' },
+  { id: 'user-8', nameEn: 'Eng. Omar Suleiman', nameAr: 'المهندس عمر سليمان', departmentId: 'dept-1', businessUnitId: 'bu-1', positionId: 'Tender Study Engineer', status: 'Active' },
+  { id: 'user-9', nameEn: 'Eng. Tamer Al-Gohary', nameAr: 'المهندس تامر الجوهري', departmentId: 'dept-1', businessUnitId: 'bu-1', positionId: 'Tender Study Engineer', status: 'Active' },
+  { id: 'user-10', nameEn: 'Eng. Hany Roushdy', nameAr: 'المهندس هاني رشدي', departmentId: 'dept-1', businessUnitId: 'bu-1', positionId: 'Tender Study Engineer', status: 'Active' },
+  { id: 'user-11', nameEn: 'Eng. Kamal Al-Khatib', nameAr: 'المهندس كمال الخطيب', departmentId: 'dept-1', businessUnitId: 'bu-1', positionId: 'Tender Study Engineer', status: 'Active' },
+  { id: 'user-12', nameEn: 'Eng. Alaa El-Din', nameAr: 'المهندس علاء الدين', departmentId: 'dept-1', businessUnitId: 'bu-1', positionId: 'Tender Study Engineer', status: 'Active' },
+  { id: 'user-13', nameEn: 'Khaled Hassan', nameAr: 'خالد حسن', departmentId: 'dept-2', businessUnitId: 'bu-1', positionId: 'Contracts Engineer', status: 'Active' },
+  { id: 'user-14', nameEn: 'Eng. Ramy Fawzy', nameAr: 'المهندس رامي فوزي', departmentId: 'dept-1', businessUnitId: 'bu-1', positionId: 'Tender Coordinator', status: 'Active' }
+];
+
+export const baselineRoles: Role[] = [
+  { id: 'role-coordinator', nameEn: 'Coordinator', nameAr: 'منسق دراسة العطاء' },
+  { id: 'role-contracts-eng', nameEn: 'Contracts Engineer', nameAr: 'مهندس العقود' },
+  { id: 'role-study-eng', nameEn: 'Tender Study Engineer', nameAr: 'مهندس دراسة العطاء' },
+  { id: 'role-commercial', nameEn: 'Commercial', nameAr: 'تجاري' },
+  { id: 'role-tech-office', nameEn: 'Technical Office', nameAr: 'المكتب الفني' },
+  { id: 'role-estimator', nameEn: 'Estimator', nameAr: 'مهندس تقدير تكاليف' },
+  { id: 'role-reviewer', nameEn: 'Reviewer', nameAr: 'مراجع فني' },
+  { id: 'role-approver', nameEn: 'Approver', nameAr: 'معتمد' },
+  { id: 'role-bid-manager', nameEn: 'Bid Manager', nameAr: 'مدير عطاءات' }
+];

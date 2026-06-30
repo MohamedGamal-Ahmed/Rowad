@@ -9,6 +9,7 @@ import { HealthCalculator } from '../business-rules/HealthCalculator';
 import { HealthStatus } from '../enums/HealthStatus';
 import { Milestone } from '../domain/common/Milestone';
 import { DEFAULT_MILESTONE_TEMPLATES } from '../constants/MilestoneTemplates';
+import { baselineEmployees } from '../domain/master/MasterData';
 
 // Explicit Legacy Tender interface to map against
 export interface LegacyTender {
@@ -54,6 +55,8 @@ export interface LegacyTender {
   siteVisitRequired?: boolean;
   siteVisitDate?: string;
   milestones?: Milestone[];
+  assignments?: any[];
+  businessEvents?: any[];
 }
 
 export class TenderMapper {
@@ -132,11 +135,6 @@ export class TenderMapper {
         branch: legacy.branch,
         businessUnit: legacy.businessUnit,
         tenderType: legacy.tenderType
-      },
-      assignments: {
-        coordinator: legacy.coordinator,
-        contractsEngineer: legacy.contractsEngineer,
-        tenderStudyEngineer: legacy.tenderStudyEngineer
       },
       timeline: {
         submission: {
@@ -228,15 +226,74 @@ export class TenderMapper {
       healthStr = 'Due Soon';
     }
 
+    // TODO: Remove after Backend Migration
+    const getLegacyAssignments = (tenderId: string) => {
+      try {
+        const raw = localStorage.getItem('preaward_assignments_db');
+        if (raw) {
+          const list: any[] = JSON.parse(raw);
+          return list.filter(a => a.tenderId === tenderId && a.status === 'Active');
+        }
+      } catch (e) {}
+      return [];
+    };
+
+    // TODO: Remove after Backend Migration
+    const getEmployeeName = (empId: string | undefined) => {
+      if (!empId) return { en: 'Unassigned', ar: 'غير معين' };
+      try {
+        const raw = localStorage.getItem('master_employees');
+        if (raw) {
+          const list: any[] = JSON.parse(raw);
+          const emp = list.find(e => e.id === empId);
+          if (emp) return { en: emp.nameEn, ar: emp.nameAr };
+        }
+      } catch (e) {}
+      const baseline = baselineEmployees.find(e => e.id === empId);
+      if (baseline) return { en: baseline.nameEn, ar: baseline.nameAr };
+      return { en: 'Unassigned', ar: 'غير معين' };
+    };
+
+    const activeAssignments = getLegacyAssignments(domain.id);
+    const coordAsg = activeAssignments.find(a => a.roleId === 'role-coordinator');
+    const contractsAsg = activeAssignments.find(a => a.roleId === 'role-contracts-eng');
+    const studyAsg = activeAssignments.find(a => a.roleId === 'role-study-eng');
+
+    const coordinator = getEmployeeName(coordAsg?.employeeId);
+    const contractsEngineer = getEmployeeName(contractsAsg?.employeeId);
+    const tenderStudyEngineer = getEmployeeName(studyAsg?.employeeId);
+
+    const getTenderAssignments = () => {
+      try {
+        const raw = localStorage.getItem('preaward_assignments_db');
+        if (raw) {
+          const list: any[] = JSON.parse(raw);
+          return list.filter(a => a.tenderId === domain.id);
+        }
+      } catch (e) {}
+      return [];
+    };
+
+    const getTenderEvents = () => {
+      try {
+        const raw = localStorage.getItem('preaward_business_events_db');
+        if (raw) {
+          const list: any[] = JSON.parse(raw);
+          return list.filter(e => e.tenderId === domain.id);
+        }
+      } catch (e) {}
+      return [];
+    };
+
     return {
       id: domain.id,
       projectCode: domain.projectCode,
       tenderNumber: domain.tenderNumber,
       projectName: domain.projectName,
       location: domain.general.location,
-      coordinator: domain.assignments.coordinator,
-      contractsEngineer: domain.assignments.contractsEngineer,
-      tenderStudyEngineer: domain.assignments.tenderStudyEngineer,
+      coordinator, // TODO: Remove after Backend Migration
+      contractsEngineer, // TODO: Remove after Backend Migration
+      tenderStudyEngineer, // TODO: Remove after Backend Migration
       department: domain.general.department,
       priority: priorityStr,
       techSubmissionDate: domain.timeline.submission.techSubmissionDate,
@@ -272,7 +329,9 @@ export class TenderMapper {
       checklistSpecs: domain.checklist.checklistSpecs,
       siteVisitRequired: domain.timeline.internal.siteVisitRequired,
       siteVisitDate: domain.timeline.internal.siteVisitDate,
-      milestones: domain.milestones || []
+      milestones: domain.milestones || [],
+      assignments: getTenderAssignments(),
+      businessEvents: getTenderEvents()
     };
   }
 }

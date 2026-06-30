@@ -19,6 +19,7 @@ import { TenderTimelineTab } from './TenderTimelineTab';
 import { TenderChecklistTab } from './TenderChecklistTab';
 import { TenderFinancialTab } from './TenderFinancialTab';
 import { TenderMilestonesTab } from './TenderMilestonesTab';
+import { TenderAssignmentsTab } from './TenderAssignmentsTab';
 import { FinancialsCalculator } from '../../../../business-rules/FinancialsCalculator';
 
 interface TenderDetailsDrawerProps {
@@ -163,79 +164,13 @@ export function TenderDetailsDrawer({
 
       {/* TAB 2: ASSIGNMENTS */}
       {activeTab === 'assignments' && (
-        <div className="space-y-4 animate-in fade-in duration-200 text-sans">
-          <div className="space-y-1.5 bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
-            <span className="text-[10px] text-gray-400 font-bold uppercase block">{isAr ? 'الإدارة والوحدة الاستراتيجية' : 'Corporate Alignment'}</span>
-            <div className="grid grid-cols-2 gap-3 text-xs mt-2">
-              <div className="bg-white p-3 rounded-xl border border-gray-50">
-                <span className="text-[10px] text-gray-400 block">{isAr ? 'القسم المسؤول' : 'Department'}</span>
-                <p className="font-extrabold text-[#183B63] mt-0.5 truncate">{selectedTender.department || 'Pre-Award Civil Core'}</p>
-              </div>
-              <div className="bg-white p-3 rounded-xl border border-gray-50">
-                <span className="text-[10px] text-gray-400 block">{isAr ? 'وحدة العمل' : 'Business Unit'}</span>
-                <p className="font-extrabold text-[#183B63] mt-0.5 truncate">
-                  {selectedTender.businessUnit ? (isAr ? selectedTender.businessUnit.ar : selectedTender.businessUnit.en) : 'N/A'}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <span className="text-[10px] text-gray-400 font-bold uppercase block">{isAr ? 'المهندسون الاستشاريون والمسؤولون' : 'Allocated Staffing Structure'}</span>
-
-            <div className="flex items-center gap-3 bg-gray-50/50 p-3 rounded-xl border border-gray-100 font-sans">
-              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center font-bold text-xs text-blue-800 shrink-0">TC</div>
-              <div className="min-w-0 flex-1">
-                <span className="text-[10px] text-gray-400 block font-bold">{isAr ? 'منسق دراسة العطاء' : 'Tender Coordinator (Lead)'}</span>
-                <p className="text-[13px] font-extrabold text-brand-navy truncate">{isAr ? selectedTender.coordinator.ar : selectedTender.coordinator.en}</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 bg-gray-50/50 p-3 rounded-xl border border-gray-100 font-sans">
-              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center font-bold text-xs text-emerald-800 shrink-0">CE</div>
-              <div className="min-w-0 flex-1">
-                <span className="text-[10px] text-gray-400 block font-bold">{isAr ? 'مهندس العقود' : 'Contracts Engineer'}</span>
-                <p className="text-[13px] font-extrabold text-brand-navy truncate">{isAr ? selectedTender.contractsEngineer.ar : selectedTender.contractsEngineer.en}</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 bg-gray-50/50 p-3 rounded-xl border border-gray-100 font-sans">
-              <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center font-bold text-xs text-purple-800 shrink-0">SE</div>
-              <div className="min-w-0 flex-1">
-                <span className="text-[10px] text-gray-400 block font-bold">{isAr ? 'مهندس دراسة العطاء' : 'Tender Study Engineer'}</span>
-                <p className="text-[13px] font-extrabold text-brand-navy truncate">
-                  {selectedTender.tenderStudyEngineer
-                    ? isAr
-                      ? selectedTender.tenderStudyEngineer.ar
-                      : selectedTender.tenderStudyEngineer.en
-                    : isAr
-                    ? 'لم يتم التعيين بعد'
-                    : 'Not Assigned Yet'}
-                </p>
-              </div>
-            </div>
-
-            {selectedTender.consultant && (
-              <div className="flex items-center gap-3 bg-gray-50/50 p-3 rounded-xl border border-gray-100 font-sans">
-                <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center font-bold text-xs text-amber-800 shrink-0">CS</div>
-                <div className="min-w-0 flex-1">
-                  <span className="text-[10px] text-gray-400 block font-bold">{isAr ? 'المكتب الاستشاري' : 'Independent Consultant'}</span>
-                  <p className="text-[13px] font-extrabold text-brand-navy truncate">{isAr ? selectedTender.consultant.ar : selectedTender.consultant.en}</p>
-                </div>
-              </div>
-            )}
-
-            {selectedTender.branch && (
-              <div className="flex items-center gap-3 bg-gray-50/50 p-3 rounded-xl border border-gray-100 font-sans">
-                <div className="w-8 h-8 rounded-full bg-rose-100 flex items-center justify-center font-bold text-xs text-rose-800 shrink-0">BR</div>
-                <div className="min-w-0 flex-1">
-                  <span className="text-[10px] text-gray-400 block font-bold">{isAr ? 'الفرع الإقليمي' : 'Regional Branch Code'}</span>
-                  <p className="text-[13px] font-extrabold text-brand-navy truncate">{isAr ? selectedTender.branch.ar : selectedTender.branch.en}</p>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        <TenderAssignmentsTab
+          selectedTender={selectedTender}
+          isAr={isAr}
+          lang={lang}
+          onUpdateTender={onUpdateTender}
+          onShowAlert={onShowAlert}
+        />
       )}
 
       {/* TAB 3: TIMELINE */}
@@ -389,39 +324,45 @@ export function TenderDetailsDrawer({
       {/* TAB 8: HISTORY */}
       {activeTab === 'history' && (
         <div className="space-y-4 animate-in fade-in duration-200 text-sans">
-          <span className="text-[10px] text-gray-400 font-bold uppercase block pl-1">{isAr ? 'سجل تتبع التعديلات والعمليات font-ar' : 'System Audit Logs (PMO Ledger)'}</span>
+          <span className="text-[10px] text-gray-400 font-bold uppercase block pl-1">
+            {isAr ? 'سجل أحداث عمليات المزايدة' : 'Business Events (Audit Log)'}
+          </span>
 
           <div className="space-y-3 max-h-[420px] overflow-y-auto premium-scrollbar pr-1">
-            {[
-              {
-                admin: 'm.gamlahmed@gmail.com',
-                text: isAr ? 'تم استيراد كود المشروع وتطبيق معايير التنبيه الزمني' : 'Registered in Cloud pre-award ledger and checked cron parameters',
-                time: isAr ? 'الآن' : 'Just now',
-              },
-              {
-                admin: 'Ahmed Mostafa',
-                text: isAr ? 'تأكيد ملاءمة الموازنة وتسجيل الضمان الإبتدائي بنسبة 2٪' : 'Verified bond amount eligibility metrics & cost margin bounds',
-                time: '2 hours ago',
-              },
-              {
-                admin: 'ROWAD Feeder',
-                text: isAr ? 'تم حفظ التعديلات الرقمية وملفات المزايدة بنجاح' : 'Digitized metadata records saved & verified against Pre-Award guidelines',
-                time: '1 day ago',
-              },
-              {
-                admin: 'System Engine',
-                text: isAr ? 'المزايدة مهيأة كلياً للعمل بموجب إعدادات البوابة الإقليمية' : 'Milestone timelines synthesized automatically according to pre-award standards',
-                time: '2 days ago',
-              },
-            ].map((log, lidx) => (
-              <div key={lidx} className="bg-gray-50/50 p-3 rounded-xl border border-gray-100 space-y-1.5 text-xs font-sans">
-                <div className="flex justify-between items-center font-bold">
-                  <span className="text-[#183B63]">{log.admin}</span>
-                  <span className="text-gray-400 text-[10px] font-mono font-normal">{log.time}</span>
-                </div>
-                <p className="text-gray-500 font-semibold leading-relaxed font-sans">{log.text}</p>
-              </div>
-            ))}
+            {(!selectedTender.businessEvents || selectedTender.businessEvents.length === 0) ? (
+              <p className="text-xs text-gray-400 italic text-center py-8 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                {isAr ? 'لا يوجد سجل للنشاط بعد' : 'No Activity Yet'}
+              </p>
+            ) : (
+              [...selectedTender.businessEvents].reverse().map((event: any) => {
+                const formattedTime = new Date(event.timestamp).toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                });
+                return (
+                  <div key={event.eventId} className="bg-slate-55 p-3 rounded-xl border border-slate-100 space-y-1.5 text-xs font-sans">
+                    <div className="flex justify-between items-center font-bold">
+                      <span className="text-[#183B63]">{event.userId}</span>
+                      <span className="text-gray-400 text-[10px] font-mono font-normal">{formattedTime}</span>
+                    </div>
+                    <div className="text-slate-600 leading-relaxed font-semibold">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="bg-brand-navy/10 text-brand-navy px-1.5 py-0.5 rounded text-[9px] uppercase font-black">{event.action}</span>
+                        <span className="text-[9px] text-slate-450">({event.moduleId})</span>
+                      </div>
+                      {event.remarks && <p className="mt-1 text-slate-500 font-medium font-sans">{event.remarks}</p>}
+                      {(event.oldValue !== undefined || event.newValue !== undefined) && (
+                        <p className="text-[9px] text-slate-400 font-mono mt-1">
+                          {event.oldValue || 'None'} → {event.newValue || 'None'}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       )}
