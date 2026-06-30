@@ -15,6 +15,7 @@ import { NumberingService } from '../../../../services/NumberingService';
 import { Clock } from '../../../../services/Clock';
 import { HealthCalculator } from '../../../../business-rules/HealthCalculator';
 import { HealthStatus } from '../../../../enums/HealthStatus';
+import { BusinessEventRepository } from '../../../../repositories/BusinessEventRepository';
 
 interface TenderWizardModalProps {
   onClose: () => void;
@@ -109,6 +110,28 @@ export function TenderWizardModal({
   }, [wizardForm]);
 
   const rules = settings.timelineRules;
+
+  const isStepValid = (step: number): { valid: boolean; errorEn: string; errorAr: string } => {
+    if (step >= 1) {
+      if (!wizardForm.projectNameEn || !wizardForm.projectNameAr || !wizardForm.projectCode) {
+        return {
+          valid: false,
+          errorEn: 'Please enter Project Name (EN & AR) and Project Code in Step 1.',
+          errorAr: 'يرجى إدخال اسم المشروع (بالإنجليزي والعربي) وكود المشروع في الخطوة الأولى.'
+        };
+      }
+    }
+    if (step >= 3) {
+      if (!wizardForm.techDate || !wizardForm.commDate) {
+        return {
+          valid: false,
+          errorEn: 'Technical and financial submittal dates in Step 3 are mandatory.',
+          errorAr: 'تواريخ تقديم العطاء الفني والمالي في الخطوة الثالثة ضرورية جداً.'
+        };
+      }
+    }
+    return { valid: true, errorEn: '', errorAr: '' };
+  };
 
   const clearWizardDraft = () => {
     localStorage.removeItem('preaward_wizard_draft');
@@ -312,6 +335,24 @@ export function TenderWizardModal({
     };
 
     onUpdateList(prev => [createdTender, ...prev]);
+
+    // Log the "Project Created" business event
+    const eventRepo = new BusinessEventRepository();
+    eventRepo.logEvent({
+      eventId: `event-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`,
+      tenderId: createdTender.id,
+      timestamp: new Date().toISOString(),
+      userId: lang === 'en' ? 'Ahmed Mostafa' : 'أحمد مصطفى',
+      source: 'User',
+      moduleId: 'Pre-Award',
+      entityType: 'Tender',
+      entityId: createdTender.id,
+      action: 'Project Created',
+      remarks: isAr
+        ? 'تم إنشاء السجل وتوليد المواعيد والتحذيرات الزمنية'
+        : 'Guided pre-award wizard completed. System loaded timeline milestones dynamically.'
+    });
+
     onClose();
     setSelectedTenderId(createdTender.id);
     localStorage.removeItem('preaward_wizard_draft');
@@ -383,9 +424,23 @@ export function TenderWizardModal({
                   key={s.step}
                   type="button"
                   onClick={() => {
-                    if (s.step < wizardStep || (wizardForm.projectNameEn && wizardForm.projectCode)) {
-                      setWizardStep(s.step);
+                    if (s.step > wizardStep) {
+                      if (s.step > 1) {
+                        const check1 = isStepValid(1);
+                        if (!check1.valid) {
+                          setToastAlert({ type: 'warn', message: isAr ? check1.errorAr : check1.errorEn });
+                          return;
+                        }
+                      }
+                      if (s.step > 3) {
+                        const check3 = isStepValid(3);
+                        if (!check3.valid) {
+                          setToastAlert({ type: 'warn', message: isAr ? check3.errorAr : check3.errorEn });
+                          return;
+                        }
+                      }
                     }
+                    setWizardStep(s.step);
                   }}
                   className={`flex flex-col items-center py-2.5 rounded-xl border transition-all text-center group cursor-pointer
                     ${
@@ -1027,17 +1082,11 @@ export function TenderWizardModal({
                 <button
                   type="button"
                   onClick={() => {
-                    if (wizardStep === 1 && (!wizardForm.projectNameEn || !wizardForm.projectNameAr)) {
+                    const validation = isStepValid(wizardStep);
+                    if (!validation.valid) {
                       setToastAlert({
                         type: 'warn',
-                        message: isAr ? 'يرجى ملء اسم المشروع باللغتين العربية والإنجليزية للمتابعة.' : 'Please enter Project Name in both languages to proceed.',
-                      });
-                      return;
-                    }
-                    if (wizardStep === 3 && (!wizardForm.techDate || !wizardForm.commDate)) {
-                      setToastAlert({
-                        type: 'warn',
-                        message: isAr ? 'تواريخ تقديم العطاء الفني والمالي ضرورية جداً لمتابعة برمجة باقي الملفات.' : 'Technical and financial submittal dates are mandatory before proceeding.',
+                        message: isAr ? validation.errorAr : validation.errorEn,
                       });
                       return;
                     }
