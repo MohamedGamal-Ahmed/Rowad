@@ -63,25 +63,14 @@ export function SubcontractorsPanel({
 
   const handleSubTotalAmtChange = (val: number) => {
     setSubTotalAmt(val);
-    if (val > 0 && subInvAmt > 0) {
-      setSubCompPct(Math.round((subInvAmt / val) * 100));
-    } else if (val > 0 && subCompPct > 0) {
-      setSubInvAmt(Math.round(val * (subCompPct / 100)));
-    }
   };
 
   const handleSubInvAmtChange = (val: number) => {
     setSubInvAmt(val);
-    if (subTotalAmt > 0) {
-      setSubCompPct(Math.min(Math.round((val / subTotalAmt) * 100), 100));
-    }
   };
 
   const handleSubCompPctChange = (val: number) => {
     setSubCompPct(val);
-    if (subTotalAmt > 0) {
-      setSubInvAmt(Math.round(subTotalAmt * (val / 100)));
-    }
   };
 
   const handleSaveSubcontract = async (e: React.FormEvent) => {
@@ -258,6 +247,14 @@ export function SubcontractorsPanel({
                 <option key={w.id} value={w.id}>{w.code} - {isAr && w.nameAr ? w.nameAr : w.nameEn}</option>
               ))}
             </select>
+            {wbsPackages.length === 0 && (
+              <p className="text-[10px] text-amber-600 font-bold mt-1">
+                {isAr 
+                  ? '⚠️ لم يتم العثور على حزم عمل. يرجى تعريف حزم العمل في تبويب WBS أولاً.' 
+                  : '⚠️ No WBS packages found. Please define WBS packages in the WBS tab first.'
+                }
+              </p>
+            )}
           </div>
 
           <div className="space-y-1">
