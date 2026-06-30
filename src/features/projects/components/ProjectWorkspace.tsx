@@ -551,17 +551,32 @@ export function ProjectWorkspace({
         {/* Commercial stats rail */}
         <div className="flex gap-6 bg-slate-50 dark:bg-slate-950/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-850 z-10 w-full md:w-auto text-xs shrink-0">
           <div>
-            <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wide block mb-1">{isAr ? 'موازنة العقد الإجمالية' : 'Contract Value'}</span>
+            <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wide block mb-1">
+              {isAr ? 'موازنة العقد المعتمدة' : 'Contract Baseline'}
+            </span>
             <div className="text-sm font-black text-brand-navy dark:text-slate-200">
-              {formatMoney(project.contractValue, project.currency)}
+              {formatMoney(project.revisedContractValue ?? project.signedContractValue, project.currency)}
             </div>
+            {project.approvedVariationTotal !== undefined && project.approvedVariationTotal !== 0 && (
+              <div className="text-[9px] text-slate-400 mt-0.5 font-semibold">
+                {isAr ? 'الأصل: ' : 'Original: '} {formatMoney(project.signedContractValue, project.currency)} 
+                {project.approvedVariationTotal > 0 ? ` (+${project.approvedVariationTotal.toLocaleString()})` : ` (${project.approvedVariationTotal.toLocaleString()})`}
+              </div>
+            )}
           </div>
           <div className="w-px bg-slate-200 dark:bg-slate-800" />
           <div>
-            <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wide block mb-1">{isAr ? 'تاريخ الإنجاز المستهدف' : 'Completion Date'}</span>
+            <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wide block mb-1">
+              {isAr ? 'تاريخ الإنجاز المستهدف' : 'Completion Date'}
+            </span>
             <div className="text-sm font-bold text-brand-red font-mono">
               {project.completionDate}
             </div>
+            {project.approvedEotDays !== undefined && project.approvedEotDays > 0 && (
+              <div className="text-[9px] text-emerald-600 dark:text-emerald-450 font-bold mt-0.5">
+                +{project.approvedEotDays} {isAr ? 'أيام تمديد معتمدة' : 'EOT Days Approved'}
+              </div>
+            )}
           </div>
         </div>
       </div>

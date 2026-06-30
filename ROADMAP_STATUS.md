@@ -9,11 +9,11 @@
 
 | Field | Value |
 |-------|-------|
-| **Current Product Version** | `v1.1.0` |
-| **Current Development Sprint** | Sprint 2 — Tender & Award |
-| **Last Completed Product Version** | `v1.1.0` |
-| **Last Completed Development Sprint** | Sprint 1 — Production Stabilization |
-| **Latest Git Tag** | `v1.1.0` |
+| **Current Product Version** | `v1.3.0` |
+| **Current Development Sprint** | Sprint 4 — Enterprise System Settings & Policies |
+| **Last Completed Product Version** | `v1.3.0` |
+| **Last Completed Development Sprint** | Sprint 3E — Commercial Domain Consolidation |
+| **Latest Git Tag** | `v1.3.0` |
 | **Last Updated** | 2026-06-30 |
 
 ---
@@ -24,8 +24,9 @@
 |--------|------|--------|----------|-----|
 | Sprint 0 | Project Governance & Architecture Foundation | ✅ Completed | 100% | — |
 | Sprint 1 | Production Stabilization | ✅ Completed | 100% | `v1.1.0` |
-| Sprint 2 | Tender & Award | 🟡 Pending Exit | 100% (Implementation) | _pending v1.2.0_ |
-| Sprint 3 | Commercial Modules (IPC + VO + NOC + Subcontracts + SPR completion) | ⏳ Planned | 0% | _pending v1.3.0_ |
+| Sprint 2 | Tender & Award | ✅ Completed | 100% | `v1.2.0` |
+| Sprint 3 | Commercial Modules (IPC + VO + NOC + Subcontracts + SPR completion) | ✅ Completed | 100% | `v1.3.0` |
+| Sprint 3E | Commercial Domain Consolidation | ✅ Completed | 100% | `v1.3.0` |
 | Sprint 4 | Enterprise System Settings & Policies | ⏳ Planned | 0% | _pending v1.4.0_ |
 | Sprint 5 | Security & RBAC Foundation | ⏳ Planned | 0% | _pending v1.5.0_ |
 | Sprint 6 | Enterprise UX Polish | ⏳ Planned | 0% | _pending v1.6.0_ |
@@ -65,7 +66,7 @@ Legend: ✅ Completed · 🟡 In Progress · ⏳ Planned · 🔴 Blocked
 | 2 | F#49 — Claims lifecycle stuck at "Prepared" | Claims Lifecycle | ✅ Completed | `ClaimStatus` union type, `ClaimLifecycleValidator` in business-rules, 8-state lifecycle with terminal blocking |
 | 3 | F#10/#11 — Tender Financial step empty/mislabeled | Tender Financial | ✅ Completed | Step 4 renamed to "Financial Review", read-only financial analysis computed from WizardForm state + Settings |
 | 4 | Tender Lifecycle Full State Machine | Tender Lifecycle | ✅ Completed | `TenderLifecycleValidator`, `TenderService.transitionTenderStatus()`, UI dropdown, BusinessEvent logging, seed data updated |
-| 5 | Sprint 2 Verification (lint / build / regression / report) | Exit | 🟡 Pending | `tsc --noEmit` clean, `npm run build` succeeds, all docs updated. **Pending: git commit + tag `v1.2.0` + push.** |
+| 5 | Sprint 2 Verification (lint / build / regression / report) | Exit | ✅ Completed | Passed all verification and exit tests. Committed and tagged `v1.2.0`. |
 
 ## Current Blockers
 

@@ -7,6 +7,8 @@ import { ProjectIPC, Payment } from '../../../../domain/projects/Project';
 import { ProjectLookupService } from '../../../../services/ProjectLookupService';
 import { RecordStatus } from '../../../../enums/RecordStatus';
 import { BiText } from '../../../../components/BiText';
+import { CalculationService } from '../../../../services/CalculationService';
+import { IpcValidator } from '../../../../validators/IpcValidator';
 
 interface IPCsPanelProps {
   lang: 'ar' | 'en';
@@ -31,6 +33,10 @@ export function IPCsPanel({
   const [formMode, setFormMode] = useState<'create' | 'edit' | 'view'>('create');
   const [editingIpc, setEditingIpc] = useState<ProjectIPC | null>(null);
 
+  // Parent project and enterprise settings
+  const [project, setProject] = useState<any>(null);
+  const [financialSettings, setFinancialSettings] = useState<any>(null);
+
   // Form Fields
   const [ipcNumber, setIpcNumber] = useState('');
   const [invoiceGrossValue, setInvoiceGrossValue] = useState(0);
@@ -38,6 +44,20 @@ export function IPCsPanel({
   const [status, setStatus] = useState('Draft');
   const [workTill, setWorkTill] = useState('');
   const [ipcSubmissionDate, setIpcSubmissionDate] = useState('');
+
+  // Advanced Commercial IPC Engine Fields
+  const [certifiedGrossValue, setCertifiedGrossValue] = useState(0);
+  const [retentionDeduction, setRetentionDeduction] = useState(0);
+  const [advanceRecovery, setAdvanceRecovery] = useState(0);
+  const [withholdingTax, setWithholdingTax] = useState(0);
+  const [netCertifiedAmount, setNetCertifiedAmount] = useState(0);
+  const [previousIpcGrossCumulative, setPreviousIpcGrossCumulative] = useState(0);
+  const [previousIpcNetCumulative, setPreviousIpcNetCumulative] = useState(0);
+  const [outstandingAmount, setOutstandingAmount] = useState(0);
+  const [totalPaid, setTotalPaid] = useState(0);
+
+  // Validation feedback state
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   // Nested Payments state in memory before submit or managed locally
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -63,7 +83,70 @@ export function IPCsPanel({
     setIpcs(list);
   };
 
+  const loadProjectAndSettings = async () => {
+    const projects = await lookupService.getProjects();
+    const found = projects.find(p => p.id === projectId);
+    if (found) {
+      setProject(found);
+    }
+    
+    const saved = localStorage.getItem('pmo_enterprise_settings');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.financialSettings) {
+          setFinancialSettings(parsed.financialSettings);
+        }
+      } catch (e) {}
+    }
+  };
+
+  const runCalculations = (
+    currentGrossCert: number,
+    currentStatus: string,
+    currentPayments: Payment[],
+    latestIpcsList = ipcs
+  ) => {
+    const mockIpc: ProjectIPC = {
+      id: editingIpc?.id || '',
+      projectId,
+      ipcNumber,
+      workTill,
+      ipcSubmissionDate,
+      invoiceGrossValue,
+      invoiceNetValue,
+      certifiedGrossValue: currentGrossCert,
+      status: currentStatus,
+      payments: currentPayments,
+      recordStatus: RecordStatus.ACTIVE,
+      auditInfo: { createdBy: 'User', createdAt: '' }
+    };
+
+    const calcService = new CalculationService();
+    const results = calcService.calculateIpcCommercials(
+      mockIpc,
+      latestIpcsList,
+      financialSettings,
+      project?.revisedContractValue ?? project?.signedContractValue ?? 0
+    );
+
+    setPreviousIpcGrossCumulative(results.previousGrossCumulative);
+    setPreviousIpcNetCumulative(results.previousNetCumulative);
+    setRetentionDeduction(results.retentionDeduction);
+    setAdvanceRecovery(results.advanceRecovery);
+    setWithholdingTax(results.withholdingTax);
+    setNetCertifiedAmount(results.netCertifiedAmount);
+    setTotalPaid(results.totalPaid);
+    setOutstandingAmount(results.outstandingAmount);
+    
+    // Suggest status change only if in Certified/Paid/Partially Paid lifecycles
+    if (currentStatus === 'Certified' || currentStatus === 'Paid' || currentStatus === 'Partially Paid') {
+      setStatus(results.status);
+    }
+  };
+
   useEffect(() => {
+    loadProjectAndSettings();
     reloadIpcs();
   }, [projectId]);
 
@@ -93,8 +176,25 @@ export function IPCsPanel({
       status,
       payments,
       workTill: workTill || new Date().toISOString().substring(0, 10),
-      ipcSubmissionDate: ipcSubmissionDate || new Date().toISOString().substring(0, 10)
+      ipcSubmissionDate: ipcSubmissionDate || new Date().toISOString().substring(0, 10),
+
+      // New Commercial Fields
+      certifiedGrossValue,
+      retentionDeduction,
+      advanceRecovery,
+      withholdingTax,
+      netCertifiedAmount,
+      previousIpcGrossCumulative,
+      previousIpcNetCumulative
     };
+
+    const validation = IpcValidator.validate(ipcRecord, ipcs);
+    if (!validation.isValid) {
+      setValidationErrors(validation.errors);
+      return;
+    }
+
+    setValidationErrors([]);
 
     const success = await lookupService.saveIPC(ipcRecord);
     if (success) {
@@ -136,13 +236,17 @@ export function IPCsPanel({
       }
     };
 
-    setPayments([...payments, newPay]);
+    const updated = [...payments, newPay];
+    setPayments(updated);
+    runCalculations(certifiedGrossValue, status, updated);
     setShowPaymentForm(false);
     resetPaymentForm();
   };
 
   const removePayment = (id: string) => {
-    setPayments(payments.filter(p => p.id !== id));
+    const updated = payments.filter(p => p.id !== id);
+    setPayments(updated);
+    runCalculations(certifiedGrossValue, status, updated);
   };
 
   const startCreate = () => {
@@ -180,6 +284,18 @@ export function IPCsPanel({
     setPayments(ipc.payments || []);
     setWorkTill(ipc.workTill || '');
     setIpcSubmissionDate(ipc.ipcSubmissionDate || '');
+    
+    const cg = ipc.certifiedGrossValue ?? 0;
+    setCertifiedGrossValue(cg);
+    setRetentionDeduction(ipc.retentionDeduction ?? 0);
+    setAdvanceRecovery(ipc.advanceRecovery ?? 0);
+    setWithholdingTax(ipc.withholdingTax ?? 0);
+    setNetCertifiedAmount(ipc.netCertifiedAmount ?? 0);
+    setPreviousIpcGrossCumulative(ipc.previousIpcGrossCumulative ?? 0);
+    setPreviousIpcNetCumulative(ipc.previousIpcNetCumulative ?? 0);
+    setValidationErrors([]);
+
+    runCalculations(cg, ipc.status, ipc.payments || []);
   };
 
   const resetForm = () => {
@@ -192,6 +308,17 @@ export function IPCsPanel({
     setShowPaymentForm(false);
     setWorkTill('');
     setIpcSubmissionDate('');
+    
+    setCertifiedGrossValue(0);
+    setRetentionDeduction(0);
+    setAdvanceRecovery(0);
+    setWithholdingTax(0);
+    setNetCertifiedAmount(0);
+    setPreviousIpcGrossCumulative(0);
+    setPreviousIpcNetCumulative(0);
+    setOutstandingAmount(0);
+    setTotalPaid(0);
+    setValidationErrors([]);
   };
 
   const resetPaymentForm = () => {
@@ -316,6 +443,17 @@ export function IPCsPanel({
              (isAr ? 'إصدار مستخلص مالي جديد' : 'New IPC Certificate')}
           </h4>
 
+          {validationErrors.length > 0 && (
+            <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl space-y-1">
+              <span className="font-bold block">{isAr ? 'يرجى تصحيح الأخطاء التالية:' : 'Please correct the following errors:'}</span>
+              <ul className="list-disc pl-5 space-y-0.5">
+                {validationErrors.map((err, idx) => (
+                  <li key={idx}>{err}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             
             <div className="space-y-1">
@@ -360,12 +498,17 @@ export function IPCsPanel({
               <select
                 disabled={formMode === 'view'}
                 value={status}
-                onChange={e => setStatus(e.target.value)}
+                onChange={e => {
+                  const s = e.target.value;
+                  setStatus(s);
+                  runCalculations(certifiedGrossValue, s, payments);
+                }}
                 className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg text-slate-800"
               >
                 <option value="Draft">Draft (مسودة)</option>
                 <option value="Submitted">Submitted (تم التقديم للمالك)</option>
                 <option value="Certified">Certified (تم الاعتماد والاستحقاق)</option>
+                <option value="Partially Paid">Partially Paid (دفع جزئي)</option>
                 <option value="Paid">Paid / Settled (تم التحصيل والصرف)</option>
               </select>
             </div>
@@ -380,7 +523,6 @@ export function IPCsPanel({
                 onChange={e => {
                   const gross = Number(e.target.value);
                   setInvoiceGrossValue(gross);
-                  // Quick flat tax approximation: net is 90% of gross (customary 10% withholding/retention)
                   setInvoiceNetValue(Number((gross * 0.9).toFixed(2)));
                 }}
                 className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg text-slate-800 focus:outline-none"
@@ -399,6 +541,112 @@ export function IPCsPanel({
             </div>
 
           </div>
+
+          {(status === 'Certified' || status === 'Paid' || status === 'Partially Paid') && (
+            <div className="bg-slate-50 dark:bg-slate-950/20 p-6 rounded-2xl border border-slate-150 space-y-4">
+              <h5 className="text-[10px] font-black text-brand-navy dark:text-slate-100 uppercase border-b pb-2">
+                {isAr ? 'اعتماد الاستشاري والخصميات التجارية' : 'Consultant Certification & Deductions'}
+              </h5>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase">{isAr ? 'القيمة المعتمدة الإجمالية (Certified Gross) *' : 'Certified Gross Value *'}</label>
+                  <input
+                    type="number"
+                    required
+                    disabled={formMode === 'view'}
+                    value={certifiedGrossValue || ''}
+                    onChange={e => {
+                      const val = parseFloat(e.target.value) || 0;
+                      setCertifiedGrossValue(val);
+                      runCalculations(val, status, payments);
+                    }}
+                    className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-850 rounded-lg text-slate-800 focus:outline-none font-bold animate-pulse-subtle"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase">{isAr ? 'إجمالي المستخلص السابق (Gross Cumulative)' : 'Previous Gross Cumulative'}</label>
+                  <input
+                    type="number"
+                    disabled
+                    value={previousIpcGrossCumulative || 0}
+                    className="w-full p-2.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-850 rounded-lg text-slate-500 font-mono"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase">{isAr ? 'صافي المستخلص السابق (Net Cumulative)' : 'Previous Net Cumulative'}</label>
+                  <input
+                    type="number"
+                    disabled
+                    value={previousIpcNetCumulative || 0}
+                    className="w-full p-2.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-850 rounded-lg text-slate-500 font-mono"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase">{isAr ? 'خصم ضمان المحتجز (Retention)' : 'Retention Deduction'}</label>
+                  <input
+                    type="number"
+                    disabled
+                    value={retentionDeduction || 0}
+                    className="w-full p-2.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-850 rounded-lg text-slate-500 font-mono"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase">{isAr ? 'استرداد الدفعة المقدمة (Recovery)' : 'Advance Recovery'}</label>
+                  <input
+                    type="number"
+                    disabled
+                    value={advanceRecovery || 0}
+                    className="w-full p-2.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-850 rounded-lg text-slate-500 font-mono"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase">{isAr ? 'ضريبة الخصم والإضافة (Withholding Tax)' : 'Withholding Tax'}</label>
+                  <input
+                    type="number"
+                    disabled
+                    value={withholdingTax || 0}
+                    className="w-full p-2.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-850 rounded-lg text-slate-500 font-mono"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase">{isAr ? 'صافي المعتمد المستحق (Net Certified)' : 'Net Certified Amount'}</label>
+                  <input
+                    type="number"
+                    disabled
+                    value={netCertifiedAmount || 0}
+                    className="w-full p-2.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-850 rounded-lg text-slate-600 font-black font-mono"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase">{isAr ? 'إجمالي المحصل الفعلي (Total Paid)' : 'Total Paid Amount'}</label>
+                  <input
+                    type="number"
+                    disabled
+                    value={totalPaid || 0}
+                    className="w-full p-2.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-850 rounded-lg text-emerald-600 font-bold font-mono"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase">{isAr ? 'الرصيد المتبقي المستحق (Outstanding)' : 'Outstanding Balance'}</label>
+                  <input
+                    type="number"
+                    disabled
+                    value={outstandingAmount || 0}
+                    className="w-full p-2.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-850 rounded-lg text-red-600 font-extrabold font-mono"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Child Panel: Cash Payments Collected */}
           <div className="space-y-4 bg-slate-50 dark:bg-slate-950/20 p-4 rounded-2xl border border-slate-150">
@@ -617,7 +865,12 @@ export function IPCsPanel({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {filteredIpcs.length > 0 ? (
               filteredIpcs.map((ipc) => {
-                const totalPaid = (ipc.payments || []).reduce((sum, pay) => sum + pay.paymentAmount, 0);
+                const totalPaid = (ipc.payments || [])
+                  .filter(p => p.recordStatus !== 'Archived' && p.status !== 'Rejected')
+                  .reduce((sum, pay) => sum + pay.paymentAmount, 0);
+                const currency = project?.currency || 'EGP';
+                const isCertifiedStatus = ipc.status === 'Certified' || ipc.status === 'Paid' || ipc.status === 'Partially Paid';
+                const outstanding = isCertifiedStatus ? Math.max(0, (ipc.netCertifiedAmount ?? 0) - totalPaid) : 0;
                 
                 return (
                   <div key={ipc.id} className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 p-5 rounded-2xl shadow-xs space-y-4 hover:border-slate-250 dark:hover:border-slate-700 transition-all flex flex-col justify-between">
@@ -628,8 +881,9 @@ export function IPCsPanel({
                         </span>
                         <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
                           ipc.status === 'Paid' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100/50' :
+                          ipc.status === 'Partially Paid' ? 'bg-amber-50 text-amber-600 border border-amber-100/50' :
                           ipc.status === 'Certified' ? 'bg-blue-50 text-blue-600 border border-blue-100/50' :
-                          ipc.status === 'Submitted' ? 'bg-amber-50 text-amber-600 border border-amber-100/50' :
+                          ipc.status === 'Submitted' ? 'bg-indigo-50 text-indigo-600 border border-indigo-100/50' :
                           'bg-slate-50 text-slate-400 border border-slate-200/50'
                         }`}>
                           {ipc.status}
@@ -640,12 +894,25 @@ export function IPCsPanel({
                         <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-[13px] hover:text-brand-red cursor-pointer transition-colors" onClick={() => startView(ipc)}>
                           {ipc.ipcNumber}
                         </h4>
-                        <div className="text-[10px] text-slate-450 font-sans font-semibold mt-1">
-                          Net Claimed: <span className="font-mono text-slate-800 font-extrabold">{(ipc.invoiceNetValue).toLocaleString()} EGP</span>
+                        <div className="text-[10px] text-slate-400 font-sans font-semibold mt-1">
+                          {isCertifiedStatus ? (
+                            <>
+                              Net Certified: <span className="font-mono text-slate-800 dark:text-slate-200 font-black">{(ipc.netCertifiedAmount ?? 0).toLocaleString()} {currency}</span>
+                            </>
+                          ) : (
+                            <>
+                              Net Claimed: <span className="font-mono text-slate-700 dark:text-slate-350 font-extrabold">{(ipc.invoiceNetValue).toLocaleString()} {currency}</span>
+                            </>
+                          )}
                         </div>
-                        <div className="text-[10px] text-slate-450 font-sans font-semibold">
-                          Total Received: <span className="font-mono text-emerald-600 font-extrabold">{totalPaid.toLocaleString()} EGP</span>
+                        <div className="text-[10px] text-slate-400 font-sans font-semibold">
+                          Received Cash: <span className="font-mono text-emerald-600 font-bold">{totalPaid.toLocaleString()} {currency}</span>
                         </div>
+                        {isCertifiedStatus && (
+                          <div className="text-[10px] text-slate-400 font-sans font-semibold">
+                            Outstanding Balance: <span className={`font-mono font-bold ${outstanding > 0 ? 'text-red-500' : 'text-slate-500'}`}>{outstanding.toLocaleString()} {currency}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
 

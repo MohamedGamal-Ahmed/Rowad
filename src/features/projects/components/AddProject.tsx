@@ -32,7 +32,7 @@ export function AddProject({
   const [consultant, setConsultant] = useState('');
   const [mainContractor, setMainContractor] = useState('');
   const [contractType, setContractType] = useState('');
-  const [contractValue, setContractValue] = useState(0);
+  const [signedContractValue, setSignedContractValue] = useState(0);
   const [currency, setCurrency] = useState('EGP');
   const [country, setCountry] = useState('Egypt');
   const [city, setCity] = useState('');
@@ -100,7 +100,7 @@ export function AddProject({
       setConsultant(entity.consultant || '');
       setMainContractor(entity.mainContractor || '');
       setContractType(entity.contractType || '');
-      setContractValue(entity.contractValue || 0);
+      setSignedContractValue(entity.signedContractValue || 0);
       setCurrency(entity.currency || 'EGP');
       setCountry(entity.country || 'Egypt');
       setCity(entity.city || '');
@@ -126,7 +126,7 @@ export function AddProject({
     if (!mainContractor) newErrors.mainContractor = isAr ? 'المقاول الرئيسي مطلوب' : 'Main Contractor is required';
     if (!startDate) newErrors.startDate = isAr ? 'تاريخ البدء مطلوب' : 'Start Date is required';
     if (!completionDate) newErrors.completionDate = isAr ? 'تاريخ الانتهاء مطلوب' : 'Completion Date is required';
-    if (contractValue <= 0) newErrors.contractValue = isAr ? 'قيمة العقد يجب أن تكون أكبر من صفر' : 'Contract Value must be greater than zero';
+    if (signedContractValue <= 0) newErrors.signedContractValue = isAr ? 'قيمة العقد يجب أن تكون أكبر من صفر' : 'Contract Value must be greater than zero';
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -150,7 +150,10 @@ export function AddProject({
       consultant,
       mainContractor,
       contractType,
-      contractValue,
+      signedContractValue,
+      revisedContractValue: signedContractValue + (entity?.approvedVariationTotal ?? 0),
+      approvedVariationTotal: entity ? entity.approvedVariationTotal : 0,
+      approvedEotDays: entity ? entity.approvedEotDays : 0,
       currency,
       country,
       city,
@@ -362,19 +365,19 @@ export function AddProject({
             
             <div className="space-y-1">
               <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                {isAr ? 'قيمة العقد الإجمالية' : 'Total Contract Value'}
+                {isAr ? 'قيمة العقد الإجمالية التأسيسية' : 'Initial Signed Contract Value'}
               </label>
               <input
                 disabled={mode === 'view'}
                 type="number"
-                value={contractValue || ''}
-                onChange={(e) => setContractValue(Number(e.target.value))}
+                value={signedContractValue || ''}
+                onChange={(e) => setSignedContractValue(Number(e.target.value))}
                 placeholder="e.g. 1500000"
                 className={`w-full text-xs p-3 bg-slate-50 dark:bg-slate-950 border rounded-xl text-slate-800 dark:text-slate-100 focus:outline-none ${
-                  errors.contractValue ? 'border-rose-500 ring-1 ring-rose-500/10' : 'border-slate-200 dark:border-slate-800 focus:border-brand-red'
+                  errors.signedContractValue ? 'border-rose-500 ring-1 ring-rose-500/10' : 'border-slate-200 dark:border-slate-800 focus:border-brand-red'
                 }`}
               />
-              {errors.contractValue && <p className="text-[10px] text-rose-500 font-bold">{errors.contractValue}</p>}
+              {errors.signedContractValue && <p className="text-[10px] text-rose-500 font-bold">{errors.signedContractValue}</p>}
             </div>
 
             <div className="space-y-1">

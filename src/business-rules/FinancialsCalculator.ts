@@ -58,10 +58,10 @@ export class FinancialsCalculator {
   }
 
   /**
-   * BR-002: Calculates Performance Bond amount based on contract value and settings.
+   * BR-002: Calculates Performance Bond amount based on signed contract value and settings.
    */
-  public static calculatePerformanceBond(contractValue: number, settings: FinancialSettings): number {
-    return contractValue * (settings.performanceBondPercentage / 100);
+  public static calculatePerformanceBond(signedContractValue: number, settings: FinancialSettings): number {
+    return signedContractValue * (settings.performanceBondPercentage / 100);
   }
 
   /**

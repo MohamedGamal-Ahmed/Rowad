@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Folder, Eye, Pickaxe, Save, Edit3, X } from 'lucide-react';
+import { Plus, Folder, Eye, Pickaxe, Save, Edit3, X, Trash2 } from 'lucide-react';
 import { Project, ProjectSubcontract, WBSPackage } from '../../../../domain/projects/Project';
 import { ProjectLookupService } from '../../../../services/ProjectLookupService';
 import { Contractor, ScopeOfWork } from '../../../../domain/master/MasterData';
@@ -49,6 +49,10 @@ export function SubcontractorsPanel({
   const [subRemarks, setSubRemarks] = useState('');
   const [selectedWbsId, setSelectedWbsId] = useState('');
 
+  // Search & Filter states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [wbsFilter, setWbsFilter] = useState('');
+
   useEffect(() => {
     async function loadMasterData() {
       const [ctrls, scps] = await Promise.all([
@@ -60,6 +64,25 @@ export function SubcontractorsPanel({
     }
     loadMasterData();
   }, []);
+
+  const filteredSubcontracts = React.useMemo(() => {
+    return subcontracts.filter(sub => {
+      const ctr = masterContractors.find(c => c.id === sub.contractorId);
+      const scope = masterScopes.find(s => s.id === sub.scopeId);
+      
+      const q = searchQuery.toLowerCase().trim();
+      const matchesSearch = !q ||
+        sub.subcontractNumber.toLowerCase().includes(q) ||
+        (ctr && ctr.companyName.toLowerCase().includes(q)) ||
+        (ctr && ctr.companyNameAr && ctr.companyNameAr.toLowerCase().includes(q)) ||
+        (scope && scope.name.toLowerCase().includes(q)) ||
+        (scope && scope.nameAr && scope.nameAr.toLowerCase().includes(q));
+
+      const matchesWbs = !wbsFilter || sub.wbsId === wbsFilter;
+
+      return matchesSearch && matchesWbs;
+    });
+  }, [subcontracts, searchQuery, wbsFilter, masterContractors, masterScopes]);
 
   const handleSubTotalAmtChange = (val: number) => {
     setSubTotalAmt(val);
@@ -82,8 +105,44 @@ export function SubcontractorsPanel({
       return;
     }
 
+    // Commercial validations
+    if (subTotalAmt <= 0) {
+      window.alert(isAr ? 'خطأ: قيمة العقد الكلية يجب أن تكون أكبر من صفر.' : 'Error: Total Subcontract Amount must be greater than zero.');
+      return;
+    }
+
+    if (subInvAmt < 0) {
+      window.alert(isAr ? 'خطأ: المبالغ المفوترة لا يمكن أن تكون قيمة سالبة.' : 'Error: Till Date Invoiced Amount cannot be negative.');
+      return;
+    }
+
+    if (subInvAmt > subTotalAmt) {
+      window.alert(isAr ? 'خطأ: المبالغ المفوترة لا يمكن أن تتجاوز القيمة الكلية للعقد من الباطن.' : 'Error: Till Date Invoiced Amount cannot exceed Total Subcontract Amount.');
+      return;
+    }
+
+    if (subCompPct < 0 || subCompPct > 100) {
+      window.alert(isAr ? 'خطأ: نسبة الإنجاز يجب أن تكون بين 0 و 100.' : 'Error: Completion Percentage must be between 0 and 100.');
+      return;
+    }
+
     const isEdit = formMode === 'edit';
     const targetId = isEdit && editingSubId ? editingSubId : `sub-${Date.now()}`;
+
+    // Project baseline budget overrun validation
+    const otherSubsSum = subcontracts
+      .filter(s => s.id !== targetId)
+      .reduce((sum, s) => sum + s.totalSubcontractAmount, 0);
+
+    const projectBaseline = project.revisedContractValue ?? project.signedContractValue;
+
+    if (otherSubsSum + subTotalAmt > projectBaseline) {
+      window.alert(isAr 
+        ? `خطأ: مجموع ميزانية عقود الباطن (${(otherSubsSum + subTotalAmt).toLocaleString()}) سيتجاوز القيمة المعتمدة لموازنة المشروع (${projectBaseline.toLocaleString()}).` 
+        : `Error: The sum of all subcontracts (${(otherSubsSum + subTotalAmt).toLocaleString()}) will exceed the project commercial baseline (${projectBaseline.toLocaleString()}).`
+      );
+      return;
+    }
     
     // Retrieve original audit info if editing
     let auditInfo = {
@@ -127,6 +186,26 @@ export function SubcontractorsPanel({
     setShowForm(false);
     resetForm();
     reloadAllProjectData();
+  };
+
+  const handleDeleteSubcontract = async (sub: ProjectSubcontract) => {
+    if (project.recordStatus === 'Archived') return;
+
+    if (confirm(isAr ? `هل أنت متأكد من حذف العقد ${sub.subcontractNumber} نهائياً؟` : `Are you sure you want to delete subcontract ${sub.subcontractNumber} permanently?`)) {
+      const success = await projectRepo.deleteSubcontract(sub.id);
+      if (success) {
+        await projectRepo.addHistory(
+          project.id,
+          'Subcontract Deleted',
+          'User',
+          `Deleted Subcontract: ${sub.subcontractNumber}`,
+          'Subcontract',
+          sub.id,
+          sub.subcontractNumber
+        );
+        reloadAllProjectData();
+      }
+    }
   };
 
   const startCreate = () => {
@@ -274,105 +353,146 @@ export function SubcontractorsPanel({
         </form>
       ) : null}
 
-      {subcontracts.length > 0 ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4" id="subcontractors-list">
-          {subcontracts.map(sub => {
-            const ctr = masterContractors.find(c => c.id === sub.contractorId);
-            const scope = masterScopes.find(s => s.id === sub.scopeId);
-            const isExpanded = expandedRecordId === sub.id;
-            const isFocused = focusedRecordId === sub.id;
-            const linkedWbs = wbsPackages.find(w => w.id === sub.wbsId);
-
-            return (
-              <div 
-                key={sub.id} 
-                className={`bg-slate-50 dark:bg-slate-950/20 border p-5 rounded-2xl flex flex-col justify-between hover:shadow-xs transition-all text-xs space-y-4
-                  ${isFocused ? 'ring-2 ring-amber-500 border-amber-500 bg-amber-500/5' : 'border-slate-100 dark:border-slate-850'}
-                `}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-[9px] text-slate-500 bg-white dark:bg-slate-900 border px-2 py-0.5 rounded font-bold">{sub.subcontractNumber}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/50 text-[10px] font-bold rounded-full font-sans uppercase">
-                      Progress {sub.completionPercentage}%
-                    </span>
-                    
-                    {project.recordStatus !== 'Archived' && (
-                      <button
-                        onClick={() => startEdit(sub)}
-                        className="p-1 hover:bg-slate-200 dark:hover:bg-slate-800 rounded text-slate-500 border cursor-pointer"
-                        title="Edit allocation"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-
-                    <button
-                      onClick={() => {
-                        setExpandedRecordId(isExpanded ? null : sub.id);
-                        if (isFocused) setFocusedRecordId(null);
-                      }}
-                      className="p-1 hover:bg-slate-200 dark:hover:bg-slate-800 rounded text-slate-500 border cursor-pointer"
-                      title="Toggle details"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-
-                {linkedWbs && (
-                  <div className="flex items-center gap-1.5 text-[10px] bg-slate-100 dark:bg-slate-900 px-2 py-1 rounded-lg text-slate-500 dark:text-slate-400 font-mono max-w-max">
-                    <Folder className="w-3.5 h-3.5 text-brand-red" />
-                    <span className="font-bold">{linkedWbs.code}</span>
-                    <span>-</span>
-                    <span className="truncate max-w-[150px]">{isAr && linkedWbs.nameAr ? linkedWbs.nameAr : linkedWbs.nameEn}</span>
-                  </div>
-                )}
-
-                <div className="space-y-1 bg-white dark:bg-slate-950 p-3 rounded-xl border border-slate-100 dark:border-slate-850">
-                  <h4 className="font-extrabold text-xs text-slate-800 dark:text-slate-100">
-                    {ctr ? (isAr && ctr.companyNameAr ? ctr.companyNameAr : ctr.companyName) : 'Unknown Contractor'}
-                  </h4>
-                  <p className="text-[10px] font-bold text-brand-red font-mono uppercase tracking-wider">
-                    Package Scope: {scope ? (isAr && scope.nameAr ? scope.nameAr : scope.name) : 'Unassigned'}
-                  </p>
-                </div>
-
-                {sub.remarks && (
-                  <p className="text-[11px] text-slate-500 bg-slate-100/50 dark:bg-slate-900/50 p-2 rounded-xl leading-relaxed">
-                    {sub.remarks}
-                  </p>
-                )}
-
-                <div className="grid grid-cols-2 gap-4 text-xs font-mono pt-1">
-                  <div>
-                    <span className="text-[10px] text-slate-400 font-sans block">{isAr ? 'قيمة العقد من الباطن' : 'Package Amount'}</span>
-                    <p className="font-bold text-slate-800 dark:text-slate-200">{formatMoney(sub.totalSubcontractAmount, project.currency)}</p>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-slate-400 font-sans block">{isAr ? 'المصروف الفعلي لغاية اليوم' : 'Total Invoiced'}</span>
-                    <p className="font-bold text-slate-800 dark:text-slate-200">{formatMoney(sub.tillDateInvoicedAmount, project.currency)}</p>
-                  </div>
-                </div>
-
-                {isExpanded && (
-                  <div className="pt-4 border-t border-slate-150 dark:border-slate-850 space-y-3">
-                    <h5 className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">
-                      {isAr ? 'مرفقات عقد الباطن المرتبطة' : 'Contextual Attachments'}
-                    </h5>
-                    <ContextualAttachmentsList
-                      projectId={project.id}
-                      entityType="Subcontract"
-                      entityId={sub.id}
-                      lang={lang}
-                      onRefresh={reloadAllProjectData}
-                    />
-                  </div>
-                )}
-              </div>
-            );
-          })}
+      {!showForm && subcontracts.length > 0 && (
+        <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 p-4 rounded-xl shadow-sm flex flex-col sm:flex-row justify-between items-center gap-3 text-xs">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder={isAr ? 'البحث برقم العقد، اسم المقاول، أو المجال...' : 'Search by subcontract #, contractor, or scope...'}
+            className="w-full sm:w-80 p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg text-slate-800 focus:outline-none"
+          />
+          
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+            <span className="text-slate-400 font-bold">{isAr ? 'حزمة WBS:' : 'WBS Filter:'}</span>
+            <select
+              value={wbsFilter}
+              onChange={e => setWbsFilter(e.target.value)}
+              className="border border-slate-200 dark:border-slate-850 rounded p-1.5 bg-white text-slate-700 dark:text-slate-200 font-bold focus:outline-none"
+            >
+              <option value="">{isAr ? 'كل الحزم' : 'All Packages'}</option>
+              {wbsPackages.map(w => (
+                <option key={w.id} value={w.id}>{w.code} - {isAr && w.nameAr ? w.nameAr : w.nameEn}</option>
+              ))}
+            </select>
+          </div>
         </div>
+      )}
+
+      {subcontracts.length > 0 ? (
+        filteredSubcontracts.length > 0 ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4" id="subcontractors-list">
+            {filteredSubcontracts.map(sub => {
+              const ctr = masterContractors.find(c => c.id === sub.contractorId);
+              const scope = masterScopes.find(s => s.id === sub.scopeId);
+              const isExpanded = expandedRecordId === sub.id;
+              const isFocused = focusedRecordId === sub.id;
+              const linkedWbs = wbsPackages.find(w => w.id === sub.wbsId);
+
+              return (
+                <div 
+                  key={sub.id} 
+                  className={`bg-slate-50 dark:bg-slate-950/20 border p-5 rounded-2xl flex flex-col justify-between hover:shadow-xs transition-all text-xs space-y-4
+                    ${isFocused ? 'ring-2 ring-amber-500 border-amber-500 bg-amber-500/5' : 'border-slate-100 dark:border-slate-850'}
+                  `}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[9px] text-slate-500 bg-white dark:bg-slate-900 border px-2 py-0.5 rounded font-bold">{sub.subcontractNumber}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/50 text-[10px] font-bold rounded-full font-sans uppercase">
+                        Progress {sub.completionPercentage}%
+                      </span>
+                      
+                      {project.recordStatus !== 'Archived' && (
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => startEdit(sub)}
+                            className="p-1 hover:bg-slate-200 dark:hover:bg-slate-800 rounded text-slate-500 border border-slate-200 cursor-pointer"
+                            title="Edit allocation"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteSubcontract(sub)}
+                            className="p-1 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/30 rounded text-rose-500 border border-rose-100/50 cursor-pointer"
+                            title="Delete subcontract"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+
+                      <button
+                        onClick={() => {
+                          setExpandedRecordId(isExpanded ? null : sub.id);
+                          if (isFocused) setFocusedRecordId(null);
+                        }}
+                        className="p-1 hover:bg-slate-200 dark:hover:bg-slate-800 rounded text-slate-500 border border-slate-200 cursor-pointer"
+                        title="Toggle details"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {linkedWbs && (
+                    <div className="flex items-center gap-1.5 text-[10px] bg-slate-100 dark:bg-slate-900 px-2 py-1 rounded-lg text-slate-500 dark:text-slate-400 font-mono max-w-max">
+                      <Folder className="w-3.5 h-3.5 text-brand-red" />
+                      <span className="font-bold">{linkedWbs.code}</span>
+                      <span>-</span>
+                      <span className="truncate max-w-[150px]">{isAr && linkedWbs.nameAr ? linkedWbs.nameAr : linkedWbs.nameEn}</span>
+                    </div>
+                  )}
+
+                  <div className="space-y-1 bg-white dark:bg-slate-950 p-3 rounded-xl border border-slate-100 dark:border-slate-850">
+                    <h4 className="font-extrabold text-xs text-slate-800 dark:text-slate-100">
+                      {ctr ? (isAr && ctr.companyNameAr ? ctr.companyNameAr : ctr.companyName) : 'Unknown Contractor'}
+                    </h4>
+                    <p className="text-[10px] font-bold text-brand-red font-mono uppercase tracking-wider">
+                      Package Scope: {scope ? (isAr && scope.nameAr ? scope.nameAr : scope.name) : 'Unassigned'}
+                    </p>
+                  </div>
+
+                  {sub.remarks && (
+                    <p className="text-[11px] text-slate-500 bg-slate-100/50 dark:bg-slate-900/50 p-2 rounded-xl leading-relaxed">
+                      {sub.remarks}
+                    </p>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-4 text-xs font-mono pt-1">
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-sans block">{isAr ? 'قيمة العقد من الباطن' : 'Package Amount'}</span>
+                      <p className="font-bold text-slate-800 dark:text-slate-200">{formatMoney(sub.totalSubcontractAmount, project.currency)}</p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-sans block">{isAr ? 'المصروف الفعلي لغاية اليوم' : 'Total Invoiced'}</span>
+                      <p className="font-bold text-slate-800 dark:text-slate-200">{formatMoney(sub.tillDateInvoicedAmount, project.currency)}</p>
+                    </div>
+                  </div>
+
+                  {isExpanded && (
+                    <div className="pt-4 border-t border-slate-150 dark:border-slate-850 space-y-3">
+                      <h5 className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">
+                        {isAr ? 'مرفقات عقد الباطن المرتبطة' : 'Contextual Attachments'}
+                      </h5>
+                      <ContextualAttachmentsList
+                        projectId={project.id}
+                        entityType="Subcontract"
+                        entityId={sub.id}
+                        lang={lang}
+                        onRefresh={reloadAllProjectData}
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center text-slate-400 py-10 text-xs">
+            {isAr ? 'لا توجد عقود تطابق خيارات البحث.' : 'No subcontracts match the search filters.'}
+          </div>
+        )
       ) : (
         <div className="text-center text-slate-400 py-10 text-xs">
           {isAr ? 'لا توجد عقود باطن مسندة حالياً لهذا المشروع.' : 'No subcontracts assigned yet.'}

@@ -318,7 +318,7 @@ IPC engine, VO, NOC, Subcontracts (these are Sprint 3). Backend, RBAC, Reporting
 - Business Completion Report (Tender + Award + Claims)
 - Remaining Gaps
 
-# Sprint 3 — Commercial Modules (IPC, VO, NOC, Subcontracts)
+# Sprint 3 — Commercial Modules (IPC, VO, NOC, Subcontracts) (Status: Completed)
 
 Complete the Project Commercial Management modules. These four modules are tightly coupled and form one commercial package.
 
@@ -349,9 +349,43 @@ Enterprise Settings (Sprint 4), RBAC (Sprint 5), UX polish (Sprint 6), Backend (
 - IPC Calculation Verification Matrix
 - SPR Live-Data Verification Report
 
+# Sprint 3E — Commercial Domain Consolidation (Status: Completed)
+
+Sprint 3E is a strategic database/domain refactoring sprint. Its sole purpose is to finalize the Project Commercial Domain Model and clean up redundant baseline fields before introducing the Enterprise Settings and PostgreSQL backend.
+
+* **This is NOT a feature sprint.**
+* **This is NOT a UI sprint.**
+* **This is NOT a business functionality sprint.**
+
+## Scope
+
+### 1. Commercial Baseline Consolidation
+Consolidate properties in the Project domain aggregate to implement a clean three-parameter baseline model:
+* `signedContractValue` (representing the award-time signed contract value, immutable after award).
+* `approvedVariationTotal` (derived cumulative sum of approved addition and omission variation orders).
+* `revisedContractValue` (calculated dynamically as `signedContractValue + approvedVariationTotal`).
+
+### 2. Elimination of Redundant Properties
+* Remove the deprecated legacy `contractValue` and intermediate `originalContractValue` properties, establishing a single source of truth for baseline contract value.
+* Rename `approvedVoTotal` to `approvedVariationTotal` codebase-wide.
+
+### 3. LocalStorage Versioned Migration
+* Implement a decoupled, versioned local storage database migration script (`Migration_001_ProjectCommercialBaseline.ts`) that runs sequentially on application startup via a `MigrationRunner` to upgrade legacy user records without data loss. Repositories remain purely CRUD.
+
+### 4. Downstream Integration & Regression
+* Realign IPC, Variation Orders, Claims, dashboards, lookup services, mapper objects, and stats rails to consume the consolidated fields, ensuring full regression integrity.
+
+## Deliverables
+- **ADR-013 — Project Commercial Baseline Model**
+- **Clean Compile & Build Verification**
+- **Commercial Regression Audit**
+
 # Sprint 4 — Enterprise System Settings & Policies
 
 Build the Enterprise Administration module. **Replace** "Centralized Master Registers" naming with "Enterprise System Settings & Policies". This module is **SYSTEM ADMIN ONLY**.
+
+## Dependencies
+* **Blocked:** This sprint is strictly blocked and cannot begin until the successful completion of **Sprint 3E (Commercial Domain Consolidation)**.
 
 ## Scope
 

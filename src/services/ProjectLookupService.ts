@@ -1,6 +1,7 @@
 import { ProjectRepository } from '../repositories/ProjectRepository';
 import { MasterDataRepository } from '../repositories/MasterDataRepository';
 import { Project } from '../domain/projects/Project';
+import { CalculationService } from './CalculationService';
 import { 
   Client, Employer, Consultant, Contractor, ScopeOfWork, Currency, Country, Department, DocumentType, ContractType 
 } from '../domain/master/MasterData';
@@ -137,7 +138,24 @@ export class ProjectLookupService {
   public async saveClaim(claim: any) { return this.projectRepo.saveClaim(claim); }
 
   public async getVariationOrders(projectId: string) { return this.projectRepo.getVariationOrders(projectId); }
-  public async saveVariationOrder(vo: any) { return this.projectRepo.saveVariationOrder(vo); }
+  public async saveVariationOrder(vo: any): Promise<boolean> {
+    const success = await this.projectRepo.saveVariationOrder(vo);
+    if (success) {
+      try {
+        const projects = await this.projectRepo.getAll();
+        const project = projects.find(p => p.id === vo.projectId);
+        if (project) {
+          const vos = await this.projectRepo.getVariationOrders(vo.projectId);
+          const calcService = new CalculationService();
+          const updatedProject = calcService.calculateProjectChangeBaseline(project, vos);
+          await this.projectRepo.save(updatedProject);
+        }
+      } catch (e) {
+        console.error('Failed to update Project Commercial Baseline', e);
+      }
+    }
+    return success;
+  }
 
   public async getNOCs(projectId: string) { return this.projectRepo.getNOCs(projectId); }
   public async saveNOC(noc: any) { return this.projectRepo.saveNOC(noc); }
@@ -148,6 +166,7 @@ export class ProjectLookupService {
 
   public async getSubcontracts(projectId: string) { return this.projectRepo.getSubcontracts(projectId); }
   public async saveSubcontract(sub: any) { return this.projectRepo.saveSubcontract(sub); }
+  public async deleteSubcontract(id: string) { return this.projectRepo.deleteSubcontract(id); }
 
   public async getDocuments(projectId: string) { return this.projectRepo.getDocuments(projectId); }
   public async saveDocument(doc: any) { return this.projectRepo.saveDocument(doc); }

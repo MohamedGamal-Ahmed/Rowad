@@ -59,7 +59,7 @@ export function ProjectList({
     const total = projects.length;
     const active = projects.filter(p => p.status === 'Active').length;
     const preAward = projects.filter(p => p.status === 'Pre-Award').length;
-    const value = projects.reduce((sum, p) => sum + p.contractValue, 0);
+    const value = projects.reduce((sum, p) => sum + p.signedContractValue, 0);
     return { total, active, preAward, value };
   }, [projects]);
 
@@ -151,7 +151,7 @@ export function ProjectList({
         `"${p.employer.replace(/"/g, '""')}"`,
         `"${p.consultant.replace(/"/g, '""')}"`,
         p.contractType,
-        p.contractValue,
+        p.signedContractValue,
         p.currency,
         p.country,
         p.city,
@@ -361,12 +361,12 @@ export function ProjectList({
                 )}
                 {visibleColumns.value && (
                   <th 
-                    onClick={() => handleSort('contractValue')}
+                    onClick={() => handleSort('signedContractValue')}
                     className="p-3 font-extrabold text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-900 select-none text-right rtl:text-left text-[10px]"
                   >
                     <div className="flex items-center justify-end gap-1.5">
                       <span>{isAr ? 'قيمة العقد الإجمالية' : 'Contract Budget'}</span>
-                      {sortBy === 'contractValue' ? (sortOrder === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />) : <ChevronsUpDown className="w-3 h-3 text-slate-300" />}
+                      {sortBy === 'signedContractValue' ? (sortOrder === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />) : <ChevronsUpDown className="w-3 h-3 text-slate-300" />}
                     </div>
                   </th>
                 )}
@@ -434,7 +434,7 @@ export function ProjectList({
                       )}
                       {visibleColumns.value && (
                         <td className={`${rowPadding} text-right rtl:text-left font-bold text-slate-800 dark:text-slate-200 font-mono`}>
-                          {formatCurrency(p.contractValue, p.currency)}
+                          {formatCurrency(p.signedContractValue, p.currency)}
                         </td>
                       )}
                       {visibleColumns.dept && (

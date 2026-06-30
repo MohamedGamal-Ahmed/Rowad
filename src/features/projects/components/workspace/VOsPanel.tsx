@@ -6,6 +6,7 @@ import {
 import { ProjectVariationOrder, VOApprovalHistory } from '../../../../domain/projects/Project';
 import { ProjectLookupService } from '../../../../services/ProjectLookupService';
 import { RecordStatus } from '../../../../enums/RecordStatus';
+import { VOLifecycleValidator } from '../../../../validators/VOLifecycleValidator';
 
 interface VOsPanelProps {
   lang: 'ar' | 'en';
@@ -30,6 +31,9 @@ export function VOsPanel({
   const [formMode, setFormMode] = useState<'create' | 'edit' | 'view'>('create');
   const [editingVo, setEditingVo] = useState<ProjectVariationOrder | null>(null);
 
+  // Parent Project Currency
+  const [projectCurrency, setProjectCurrency] = useState('EGP');
+
   // Form Fields
   const [voNumber, setVoNumber] = useState('');
   const [voTitle, setVoTitle] = useState('');
@@ -42,6 +46,36 @@ export function VOsPanel({
   const [costImpactType, setCostImpactType] = useState('Addition');
   const [riskLevel, setRiskLevel] = useState('Low');
   const [remarks, setRemarks] = useState('');
+
+  // Extended Change Management Fields
+  // 1. Technical Description
+  const [voType, setVoType] = useState<'Addition' | 'Omission' | 'Transfer'>('Addition');
+  const [description, setDescription] = useState('');
+  const [merits, setMerits] = useState('');
+
+  // 2. Employer Instruction
+  const [instructionType, setInstructionType] = useState<'EI' | 'AI' | 'VO' | 'Other'>('EI');
+  const [instructionRef, setInstructionRef] = useState('');
+  const [instructionDate, setInstructionDate] = useState('');
+
+  // 3. Commercial Offer
+  const [commSubmissionStatus, setCommSubmissionStatus] = useState<'Pending' | 'Submitted' | 'Approved'>('Pending');
+  const [commRfvRef, setCommRfvRef] = useState('');
+  const [commDate, setCommDate] = useState('');
+  const [commAmount, setCommAmount] = useState(0);
+  const [commEotDays, setCommEotDays] = useState(0);
+
+  // 4. Approval details
+  const [approvalDate, setApprovalDate] = useState('');
+  const [approvedAmount, setApprovedAmount] = useState(0);
+  const [approvalRef, setApprovalRef] = useState('');
+  const [approvedEotDays, setApprovedEotDays] = useState(0);
+
+  // Override option for approved amount > proposed amount
+  const [allowApprovedValueOverride, setAllowApprovedValueOverride] = useState(false);
+
+  // Validation feedback state
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   // Child Entity list: VO Approval History
   const [approvals, setApprovals] = useState<VOApprovalHistory[]>([]);
@@ -61,6 +95,12 @@ export function VOsPanel({
   const reloadVos = async () => {
     const list = await lookupService.getVariationOrders(projectId);
     setVos(list);
+
+    const projects = await lookupService.getProjects();
+    const found = projects.find(p => p.id === projectId);
+    if (found) {
+      setProjectCurrency(found.currency || 'EGP');
+    }
   };
 
   useEffect(() => {
@@ -76,11 +116,20 @@ export function VOsPanel({
       return;
     }
 
+    // Approved status check: Lock Approved VOs from edits except through workflow
+    if (editingVo && (editingVo.status === 'Approved' || editingVo.status === 'Implemented') && status === editingVo.status) {
+      window.alert(isAr ? 'لا يمكن تعديل أمر تغييري معتمد ومقفل.' : 'Cannot modify an approved/implemented Variation Order.');
+      return;
+    }
+
     const targetId = editingVo ? editingVo.id : `vo-${Date.now()}`;
     const auditInfo = editingVo ? editingVo.auditInfo : {
       createdBy: 'User',
       createdAt: new Date().toISOString()
     };
+
+    const finalValue = status === 'Approved' || status === 'Implemented' ? approvedAmount : commAmount;
+    const finalEot = status === 'Approved' || status === 'Implemented' ? approvedEotDays : commEotDays;
 
     const voRecord: ProjectVariationOrder = {
       id: targetId,
@@ -91,13 +140,44 @@ export function VOsPanel({
       title: voTitle.trim(),
       titleAr: voTitleAr.trim() || undefined,
       status,
-      additionalValue,
-      scheduleImpactDays,
+      additionalValue: finalValue,
+      scheduleImpactDays: finalEot,
       costImpactType,
       riskLevel,
       remarks,
-      approvals // Bind child approvals history
+      approvals,
+      technicalDescription: {
+        additionOrOmission: voType,
+        description,
+        merits
+      },
+      employerInstruction: {
+        instructionType,
+        reference: instructionRef.trim(),
+        date: instructionDate
+      },
+      commercialOffer: {
+        submissionStatus: commSubmissionStatus,
+        rfvReference: commRfvRef.trim(),
+        commercialDate: commDate,
+        amount: commAmount,
+        extensionOfTimeDays: commEotDays
+      },
+      approval: status === 'Approved' || status === 'Implemented' ? {
+        approvalDate,
+        approvedAmount,
+        approvalReference: approvalRef.trim(),
+        approvedEotDays
+      } : undefined
     };
+
+    const validation = VOLifecycleValidator.validate(voRecord, editingVo, allowApprovedValueOverride);
+    if (!validation.isValid) {
+      setValidationErrors(validation.errors);
+      return;
+    }
+
+    setValidationErrors([]);
 
     const success = await lookupService.saveVariationOrder(voRecord);
     if (success) {
@@ -105,7 +185,7 @@ export function VOsPanel({
         projectId,
         editingVo ? 'Variation Order Updated' : 'Variation Order Registered',
         'User',
-        `VO: ${voNumber}, Value: ${additionalValue}, EOT: ${scheduleImpactDays} Days`,
+        `VO: ${voNumber}, Value: ${finalValue}, EOT: ${finalEot} Days`,
         'VariationOrder',
         targetId
       );
@@ -177,6 +257,32 @@ export function VOsPanel({
     setRiskLevel(vo.riskLevel || 'Low');
     setRemarks(vo.remarks || '');
     setApprovals(vo.approvals || []);
+
+    // Tech Description
+    setVoType(vo.technicalDescription?.additionOrOmission || 'Addition');
+    setDescription(vo.technicalDescription?.description || '');
+    setMerits(vo.technicalDescription?.merits || '');
+
+    // Employer Instruction
+    setInstructionType(vo.employerInstruction?.instructionType || 'EI');
+    setInstructionRef(vo.employerInstruction?.reference || '');
+    setInstructionDate(vo.employerInstruction?.date || '');
+
+    // Commercial Offer
+    setCommSubmissionStatus(vo.commercialOffer?.submissionStatus || 'Pending');
+    setCommRfvRef(vo.commercialOffer?.rfvReference || '');
+    setCommDate(vo.commercialOffer?.commercialDate || '');
+    setCommAmount(vo.commercialOffer?.amount || 0);
+    setCommEotDays(vo.commercialOffer?.extensionOfTimeDays || 0);
+
+    // Approval details
+    setApprovalDate(vo.approval?.approvalDate || '');
+    setApprovedAmount(vo.approval?.approvedAmount || 0);
+    setApprovalRef(vo.approval?.approvalReference || '');
+    setApprovedEotDays(vo.approval?.approvedEotDays || 0);
+
+    setAllowApprovedValueOverride(false);
+    setValidationErrors([]);
   };
 
   const resetForm = () => {
@@ -192,6 +298,24 @@ export function VOsPanel({
     setRemarks('');
     setApprovals([]);
     setShowApprovalForm(false);
+
+    setVoType('Addition');
+    setDescription('');
+    setMerits('');
+    setInstructionType('EI');
+    setInstructionRef('');
+    setInstructionDate('');
+    setCommSubmissionStatus('Pending');
+    setCommRfvRef('');
+    setCommDate('');
+    setCommAmount(0);
+    setCommEotDays(0);
+    setApprovalDate('');
+    setApprovedAmount(0);
+    setApprovalRef('');
+    setApprovedEotDays(0);
+    setAllowApprovedValueOverride(false);
+    setValidationErrors([]);
   };
 
   const resetApprovalForm = () => {
@@ -309,119 +433,353 @@ export function VOsPanel({
       {/* Form View */}
       {showForm && (
         <form onSubmit={handleSave} className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 rounded-[32px] p-6 shadow-sm space-y-6">
-          <h4 className="text-xs font-black text-brand-navy dark:text-slate-100 uppercase border-b pb-2">
-            {formMode === 'view' ? (isAr ? 'عرض تفاصيل الأمر التغييري' : 'View VO details') :
-             formMode === 'edit' ? (isAr ? 'تعديل الأمر التغييري الحالي' : 'Edit Variation Order') : 
-             (isAr ? 'تسجيل أمر تغييري جديد' : 'New Variation Order')}
+          <h4 className="text-xs font-black text-brand-navy dark:text-slate-100 uppercase border-b pb-2 flex justify-between items-center">
+            <span>
+              {formMode === 'view' ? (isAr ? 'عرض تفاصيل الأمر التغييري' : 'View VO details') :
+               formMode === 'edit' ? (isAr ? 'تعديل الأمر التغييري الحالي' : 'Edit Variation Order') : 
+               (isAr ? 'تسجيل أمر تغييري جديد' : 'New Variation Order')}
+            </span>
+            {formMode !== 'view' && (
+              <span className="text-[10px] text-brand-red font-extrabold uppercase">
+                {isAr ? 'مسودة' : 'Active Workspace Draft'}
+              </span>
+            )}
           </h4>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            
-            <div className="space-y-1">
-              <label className="block text-[10px] font-bold text-slate-400 uppercase">{isAr ? 'رقم الأمر التغييري *' : 'VO Number *'}</label>
-              <input
-                type="text"
-                required
-                disabled={formMode === 'view'}
-                value={voNumber}
-                onChange={e => setVoNumber(e.target.value)}
-                placeholder="e.g. VO-01, VO-CIV-02"
-                className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg text-slate-800 focus:outline-none"
-              />
+          {/* Validation Feedback */}
+          {validationErrors.length > 0 && (
+            <div className="p-4 bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/50 rounded-xl text-rose-700 dark:text-rose-350 space-y-1">
+              <p className="font-extrabold flex items-center gap-1.5 text-[10px]">
+                <AlertTriangle className="w-4 h-4 text-rose-600" />
+                <span>{isAr ? 'يرجى تصحيح الأخطاء التالية قبل الحفظ:' : 'Please correct the following errors before saving:'}</span>
+              </p>
+              <ul className="list-disc list-inside text-[10px] space-y-0.5">
+                {validationErrors.map((err, i) => <li key={i}>{err}</li>)}
+              </ul>
             </div>
+          )}
 
-            <div className="space-y-1">
-              <label className="block text-[10px] font-bold text-slate-400 uppercase">{isAr ? 'اسم البند / العنوان (EN) *' : 'Title (EN) *'}</label>
-              <input
-                type="text"
-                required
-                disabled={formMode === 'view'}
-                value={voTitle}
-                onChange={e => setVoTitle(e.target.value)}
-                className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg text-slate-800 focus:outline-none"
-              />
+          {/* SECTION 1: General Details */}
+          <div className="space-y-3">
+            <h5 className="text-[10px] font-black text-slate-450 dark:text-slate-400 uppercase tracking-wider border-l-2 border-brand-red pl-2">
+              {isAr ? '1. البيانات الأساسية' : '1. General details'}
+            </h5>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase">{isAr ? 'رقم الأمر التغييري *' : 'VO Number *'}</label>
+                <input
+                  type="text"
+                  required
+                  disabled={formMode === 'view'}
+                  value={voNumber}
+                  onChange={e => setVoNumber(e.target.value)}
+                  placeholder="e.g. VO-01, VO-CIV-02"
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg text-slate-800 focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase">{isAr ? 'اسم البند / العنوان (EN) *' : 'Title (EN) *'}</label>
+                <input
+                  type="text"
+                  required
+                  disabled={formMode === 'view'}
+                  value={voTitle}
+                  onChange={e => setVoTitle(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg text-slate-800 focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase">{isAr ? 'اسم البند / العنوان (AR)' : 'Title (AR)'}</label>
+                <input
+                  type="text"
+                  disabled={formMode === 'view'}
+                  value={voTitleAr}
+                  onChange={e => setVoTitleAr(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg text-slate-800 focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase">{isAr ? 'الحالة الحالية للاعتماد' : 'VO Status'}</label>
+                <select
+                  disabled={formMode === 'view'}
+                  value={status}
+                  onChange={e => setStatus(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg text-slate-800"
+                >
+                  <option value="Draft">Draft</option>
+                  <option value="Submitted">Submitted</option>
+                  <option value="Under Review">Under Review</option>
+                  <option value="Approved">Approved</option>
+                  <option value="Rejected">Rejected</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase">{isAr ? 'تصنيف تأثير التكلفة' : 'Cost Impact Type'}</label>
+                <select
+                  disabled={formMode === 'view'}
+                  value={costImpactType}
+                  onChange={e => setCostImpactType(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg text-slate-800"
+                >
+                  <option value="Addition">Addition (زيادة تكلفة العقد)</option>
+                  <option value="Omission">Omission (وفر مالي وتقليص بنود)</option>
+                  <option value="Substitution">Substitution (موازنة واستبدال بنود)</option>
+                  <option value="No Cost">No Cost (تغيير فني بدون تكلفة)</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase">{isAr ? 'درجة الخطورة والتأثير' : 'Risk Level'}</label>
+                <select
+                  disabled={formMode === 'view'}
+                  value={riskLevel}
+                  onChange={e => setRiskLevel(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg text-slate-800"
+                >
+                  <option value="Low">Low</option>
+                  <option value="Medium">Medium</option>
+                  <option value="High">High / Critical</option>
+                </select>
+              </div>
             </div>
-
-            <div className="space-y-1">
-              <label className="block text-[10px] font-bold text-slate-400 uppercase">{isAr ? 'اسم البند / العنوان (AR)' : 'Title (AR)'}</label>
-              <input
-                type="text"
-                disabled={formMode === 'view'}
-                value={voTitleAr}
-                onChange={e => setVoTitleAr(e.target.value)}
-                className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg text-slate-800 focus:outline-none"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="block text-[10px] font-bold text-slate-400 uppercase">{isAr ? 'الحالة الحالية للاعتماد' : 'VO Status'}</label>
-              <select
-                disabled={formMode === 'view'}
-                value={status}
-                onChange={e => setStatus(e.target.value)}
-                className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg text-slate-800"
-              >
-                <option value="Draft">Draft</option>
-                <option value="Submitted">Submitted</option>
-                <option value="Under Review">Under Review</option>
-                <option value="Approved">Approved</option>
-                <option value="Rejected">Rejected</option>
-              </select>
-            </div>
-
-            <div className="space-y-1">
-              <label className="block text-[10px] font-bold text-slate-400 uppercase">{isAr ? 'تصنيف تأثير التكلفة' : 'Cost Impact Type'}</label>
-              <select
-                disabled={formMode === 'view'}
-                value={costImpactType}
-                onChange={e => setCostImpactType(e.target.value)}
-                className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg text-slate-800"
-              >
-                <option value="Addition">Addition (زيادة تكلفة العقد)</option>
-                <option value="Omission">Omission (وفر مالي وتقليص بنود)</option>
-                <option value="Substitution">Substitution (موازنة واستبدال بنود)</option>
-                <option value="No Cost">No Cost (تغيير فني بدون تكلفة)</option>
-              </select>
-            </div>
-
-            <div className="space-y-1">
-              <label className="block text-[10px] font-bold text-slate-400 uppercase">{isAr ? 'درجة الخطورة والتأثير' : 'Risk Level'}</label>
-              <select
-                disabled={formMode === 'view'}
-                value={riskLevel}
-                onChange={e => setRiskLevel(e.target.value)}
-                className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg text-slate-800"
-              >
-                <option value="Low">Low</option>
-                <option value="Medium">Medium</option>
-                <option value="High">High / Critical</option>
-              </select>
-            </div>
-
-            <div className="space-y-1">
-              <label className="block text-[10px] font-bold text-slate-400 uppercase">{isAr ? 'مبلغ التعديل الإضافي (EGP) *' : 'Additional Value (EGP) *'}</label>
-              <input
-                type="number"
-                required
-                disabled={formMode === 'view'}
-                value={additionalValue || ''}
-                onChange={e => setAdditionalValue(Number(e.target.value))}
-                className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg text-slate-800 focus:outline-none"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="block text-[10px] font-bold text-slate-400 uppercase">{isAr ? 'عدد الأيام المضافة للجدول الزمني' : 'Schedule Impact (Days)'}</label>
-              <input
-                type="number"
-                disabled={formMode === 'view'}
-                value={scheduleImpactDays || ''}
-                onChange={e => setScheduleImpactDays(Number(e.target.value))}
-                className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg text-slate-800 focus:outline-none"
-              />
-            </div>
-
           </div>
+
+          {/* SECTION 2: Client Instruction */}
+          <div className="space-y-3 pt-3 border-t">
+            <h5 className="text-[10px] font-black text-slate-455 dark:text-slate-400 uppercase tracking-wider border-l-2 border-brand-red pl-2">
+              {isAr ? '2. توجيه العميل (Instruction details)' : '2. Employer / Client instruction'}
+            </h5>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase">{isAr ? 'نوع التوجيه *' : 'Instruction Type *'}</label>
+                <select
+                  disabled={formMode === 'view'}
+                  value={instructionType}
+                  onChange={e => setInstructionType(e.target.value as any)}
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg text-slate-800"
+                >
+                  <option value="EI">EI - Employer Instruction</option>
+                  <option value="AI">AI - Architects Instruction</option>
+                  <option value="VO">VO - Variation Order Directive</option>
+                  <option value="Other">Other Letter/Instruction</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase">{isAr ? 'مرجع الخطاب / التوجيه *' : 'Instruction Reference *'}</label>
+                <input
+                  type="text"
+                  disabled={formMode === 'view'}
+                  value={instructionRef}
+                  onChange={e => setInstructionRef(e.target.value)}
+                  placeholder="e.g. ROWAD-AI-045, ENGR-DIR-012"
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg text-slate-800 focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase">{isAr ? 'تاريخ الخطاب / التوجيه' : 'Instruction Date'}</label>
+                <input
+                  type="date"
+                  disabled={formMode === 'view'}
+                  value={instructionDate}
+                  onChange={e => setInstructionDate(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg text-slate-800"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION 3: Technical Merits */}
+          <div className="space-y-3 pt-3 border-t">
+            <h5 className="text-[10px] font-black text-slate-455 dark:text-slate-400 uppercase tracking-wider border-l-2 border-brand-red pl-2">
+              {isAr ? '3. المبررات الفنية والأثر' : '3. Technical description & merits'}
+            </h5>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase">{isAr ? 'نوع التغيير الفني *' : 'Change Direction *'}</label>
+                <select
+                  disabled={formMode === 'view'}
+                  value={voType}
+                  onChange={e => setVoType(e.target.value as any)}
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg text-slate-800"
+                >
+                  <option value="Addition">Addition (إضافة أعمال)</option>
+                  <option value="Omission">Omission (حذف / وفر أعمال)</option>
+                  <option value="Transfer">Transfer (نقل بنود)</option>
+                </select>
+              </div>
+
+              <div className="space-y-1 md:col-span-2">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase">{isAr ? 'المزايا والمبررات التعاقدية *' : 'Contractual Merits / Justification *'}</label>
+                <input
+                  type="text"
+                  disabled={formMode === 'view'}
+                  value={merits}
+                  onChange={e => setMerits(e.target.value)}
+                  placeholder="e.g. Required due to unforeseen site obstacles in Sector B"
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg text-slate-800 focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1 md:col-span-3">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase">{isAr ? 'الوصف الفني التفصيلي *' : 'Technical Description *'}</label>
+                <textarea
+                  rows={2}
+                  disabled={formMode === 'view'}
+                  value={description}
+                  onChange={e => setDescription(e.target.value)}
+                  placeholder="Detailed breakdown of addition, omission, or substitution specifications..."
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg text-slate-800 focus:outline-none"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION 4: Contractor Commercial Proposal */}
+          <div className="space-y-3 pt-3 border-t">
+            <h5 className="text-[10px] font-black text-slate-455 dark:text-slate-400 uppercase tracking-wider border-l-2 border-brand-red pl-2">
+              {isAr ? '4. المقترح المالي والزمني (Proposed Offer)' : '4. Contractor commercial proposal'}
+            </h5>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase">{isAr ? `المبلغ المقترح للتغيير (${projectCurrency}) *` : `Proposed Amount (${projectCurrency}) *`}</label>
+                <input
+                  type="number"
+                  required
+                  disabled={formMode === 'view'}
+                  value={commAmount || ''}
+                  onChange={e => setCommAmount(Number(e.target.value))}
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg text-slate-800 focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase">{isAr ? 'التمديد الزمني المقترح (أيام)' : 'Proposed EOT (Days)'}</label>
+                <input
+                  type="number"
+                  disabled={formMode === 'view'}
+                  value={commEotDays || ''}
+                  onChange={e => setCommEotDays(Number(e.target.value))}
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg text-slate-800 focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase">{isAr ? 'مرجع مقترح التكلفة RFV' : 'RFV Reference'}</label>
+                <input
+                  type="text"
+                  disabled={formMode === 'view'}
+                  value={commRfvRef}
+                  onChange={e => setCommRfvRef(e.target.value)}
+                  placeholder="e.g. RFV-CIV-04"
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg text-slate-800 focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase">{isAr ? 'تاريخ تقديم العرض' : 'Offer Date'}</label>
+                <input
+                  type="date"
+                  disabled={formMode === 'view'}
+                  value={commDate}
+                  onChange={e => setCommDate(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg text-slate-800"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase">{isAr ? 'حالة تقديم العرض للعميل' : 'Submission Status'}</label>
+                <select
+                  disabled={formMode === 'view'}
+                  value={commSubmissionStatus}
+                  onChange={e => setCommSubmissionStatus(e.target.value as any)}
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg text-slate-800"
+                >
+                  <option value="Pending">Pending / Under pricing</option>
+                  <option value="Submitted">Submitted to Consultant/Client</option>
+                  <option value="Approved">Approved in Principle</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION 5: Approval Baseline details (Only shown if status is Approved or Implemented) */}
+          {(status === 'Approved' || status === 'Implemented') && (
+            <div className="space-y-3 pt-3 border-t bg-emerald-50/20 dark:bg-emerald-950/5 p-4 rounded-2xl border border-emerald-100 dark:border-emerald-900/30">
+              <h5 className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-wider border-l-2 border-emerald-600 pl-2">
+                {isAr ? '5. بيانات الاعتماد والمقايسة المعتمدة (Approval Baseline)' : '5. Certified approval baseline'}
+              </h5>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-bold text-emerald-800 dark:text-emerald-350 uppercase">{isAr ? `المبلغ المعتمد النهائي (${projectCurrency}) *` : `Approved Amount (${projectCurrency}) *`}</label>
+                  <input
+                    type="number"
+                    required
+                    disabled={formMode === 'view'}
+                    value={approvedAmount || ''}
+                    onChange={e => setApprovedAmount(Number(e.target.value))}
+                    className="w-full p-2.5 bg-white dark:bg-slate-950 border border-emerald-200 dark:border-slate-850 rounded-lg text-slate-800 focus:outline-none focus:border-emerald-500 font-extrabold"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-bold text-emerald-800 dark:text-emerald-350 uppercase">{isAr ? 'التمديد الزمني المعتمد (أيام)' : 'Approved EOT (Days)'}</label>
+                  <input
+                    type="number"
+                    disabled={formMode === 'view'}
+                    value={approvedEotDays || ''}
+                    onChange={e => setApprovedEotDays(Number(e.target.value))}
+                    className="w-full p-2.5 bg-white dark:bg-slate-950 border border-emerald-200 dark:border-slate-850 rounded-lg text-slate-800 focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-bold text-emerald-800 dark:text-emerald-350 uppercase">{isAr ? 'مرجع الاعتماد / خطاب المالك *' : 'Approval Reference *'}</label>
+                  <input
+                    type="text"
+                    required
+                    disabled={formMode === 'view'}
+                    value={approvalRef}
+                    onChange={e => setApprovalRef(e.target.value)}
+                    placeholder="e.g. MO-APPR-2026-03"
+                    className="w-full p-2.5 bg-white dark:bg-slate-950 border border-emerald-200 dark:border-slate-850 rounded-lg text-slate-800 focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-bold text-emerald-800 dark:text-emerald-350 uppercase">{isAr ? 'تاريخ خطاب الاعتماد *' : 'Approval Date *'}</label>
+                  <input
+                    type="date"
+                    required
+                    disabled={formMode === 'view'}
+                    value={approvalDate}
+                    onChange={e => setApprovalDate(e.target.value)}
+                    className="w-full p-2.5 bg-white dark:bg-slate-950 border border-emerald-200 dark:border-slate-850 rounded-lg text-slate-800 focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                {formMode !== 'view' && (
+                  <div className="flex items-center gap-2 md:col-span-2 pt-4">
+                    <input
+                      type="checkbox"
+                      id="overrideCheck"
+                      checked={allowApprovedValueOverride}
+                      onChange={e => setAllowApprovedValueOverride(e.target.checked)}
+                      className="w-4 h-4 text-emerald-600 border-slate-300 rounded cursor-pointer"
+                    />
+                    <label htmlFor="overrideCheck" className="text-[10px] font-bold text-slate-650 cursor-pointer">
+                      {isAr ? 'السماح بتجاوز المبلغ المعتمد للمقترح المقدم من المقاول.' : 'Allow approved value to exceed proposed amount (explicit override).'}
+                    </label>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Child Entity: VOApprovalHistory */}
           <div className="space-y-4 bg-slate-50 dark:bg-slate-950/20 p-4 rounded-2xl border border-slate-150">
@@ -649,7 +1007,7 @@ export function VOsPanel({
                       <p className="text-[10px] text-slate-450 font-semibold mt-0.5">{isAr && vo.titleAr ? vo.titleAr : vo.title}</p>
                       
                       <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-2 text-[10px] text-slate-500 font-semibold font-sans pt-2 border-t">
-                        <span>Cost Impact: <span className="font-mono text-slate-850 font-bold">{vo.additionalValue.toLocaleString()} EGP</span></span>
+                        <span>Cost Impact: <span className="font-mono text-slate-850 font-bold">{vo.additionalValue.toLocaleString()} {projectCurrency}</span></span>
                         <span>EOT Days: <span className="font-mono text-slate-850 font-bold">{vo.scheduleImpactDays || 0} Days</span></span>
                         <span>Risk Level: <span className="font-sans font-extrabold text-brand-navy">{vo.riskLevel || 'Low'}</span></span>
                       </div>

@@ -6,6 +6,7 @@ import {
 import { ProjectNOC } from '../../../../domain/projects/Project';
 import { ProjectLookupService } from '../../../../services/ProjectLookupService';
 import { RecordStatus } from '../../../../enums/RecordStatus';
+import { ContextualAttachmentsList } from './ContextualAttachmentsList';
 
 interface NOCsPanelProps {
   lang: 'ar' | 'en';
@@ -38,6 +39,34 @@ export function NOCsPanel({
   const [expiryDate, setExpiryDate] = useState('');
   const [status, setStatus] = useState('Pending');
   const [remarks, setRemarks] = useState('');
+
+  // NOC Expiry Helper Logic
+  const isExpired = (expDate: string | undefined): boolean => {
+    if (!expDate) return false;
+    const exp = new Date(expDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return exp.getTime() < today.getTime();
+  };
+
+  const isExpiringSoon = (expDate: string | undefined): boolean => {
+    if (!expDate) return false;
+    const exp = new Date(expDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diffTime = exp.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays > 0 && diffDays <= 30;
+  };
+
+  const getDaysRemaining = (expDate: string | undefined): number => {
+    if (!expDate) return 0;
+    const exp = new Date(expDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diffTime = exp.getTime() - today.getTime();
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  };
 
   // Filters
   const [statusFilter, setStatusFilter] = useState<'Active' | 'Archived'>('Active');
@@ -348,6 +377,21 @@ export function NOCsPanel({
             />
           </div>
 
+          {/* Attachments Section (Edit/View mode only) */}
+          {formMode !== 'create' && editingNoc && (
+            <div className="space-y-3 pt-3 border-t">
+              <h5 className="text-[10px] font-black text-slate-450 dark:text-slate-400 uppercase tracking-wider border-l-2 border-brand-red pl-2">
+                {isAr ? 'مرفقات ووثائق التصريح' : 'NOC contextual attachments'}
+              </h5>
+              <ContextualAttachmentsList
+                lang={lang}
+                projectId={projectId}
+                entityType="NOC"
+                entityId={editingNoc.id}
+              />
+            </div>
+          )}
+
           {/* Buttons */}
           <div className="flex justify-end gap-2.5 pt-3 border-t">
             <button
@@ -426,6 +470,20 @@ export function NOCsPanel({
                         <span>Applied: <span className="font-mono text-slate-850 font-bold">{noc.applicationDate}</span></span>
                         <span>Expires: <span className="font-mono text-slate-850 font-bold">{noc.expiryDate || 'N/A'}</span></span>
                       </div>
+
+                      {noc.expiryDate && noc.status === 'Approved' && isExpired(noc.expiryDate) && (
+                        <div className="mt-2 p-2 bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/40 text-rose-700 dark:text-rose-350 font-bold rounded-lg flex items-center gap-1.5 text-[9px]">
+                          <ShieldAlert className="w-3.5 h-3.5 text-rose-600" />
+                          <span>{isAr ? '⚠️ منتهي الصلاحية!' : '⚠️ Expired Permit! Renewal Required.'}</span>
+                        </div>
+                      )}
+
+                      {noc.expiryDate && noc.status === 'Approved' && isExpiringSoon(noc.expiryDate) && (
+                        <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/40 text-amber-700 dark:text-amber-350 font-bold rounded-lg flex items-center gap-1.5 text-[9px]">
+                          <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
+                          <span>{isAr ? `⚠️ ينتهي خلال ${getDaysRemaining(noc.expiryDate)} يوم!` : `⚠️ Expires in ${getDaysRemaining(noc.expiryDate)} days!`}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
 

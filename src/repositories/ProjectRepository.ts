@@ -223,6 +223,17 @@ export class ProjectRepository {
     return this.saveSubEntity('pmo_project_subcontracts', subcontract, baselineSubcontracts);
   }
 
+  public async deleteSubcontract(id: string): Promise<boolean> {
+    try {
+      const list = this.getOrSeed<ProjectSubcontract>('pmo_project_subcontracts', baselineSubcontracts);
+      const filtered = list.filter(item => item.id !== id);
+      localStorage.setItem('pmo_project_subcontracts', JSON.stringify(filtered));
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   public async getDocuments(projectId: string): Promise<ProjectDocument[]> {
     const list: ProjectDocument[] = this.getOrSeed('pmo_project_documents', baselineDocuments);
     return list.filter(d => d.projectId === projectId);

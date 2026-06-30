@@ -61,7 +61,7 @@ export function ProjectDashboard({
 
   // 2. Compute live KPIs
   const openIpcCount = ipcs.filter(i => i.status !== 'Paid').length;
-  const openIpcValue = ipcs.filter(i => i.status !== 'Paid').reduce((sum, i) => sum + i.invoiceGrossValue, 0);
+  const openIpcValue = ipcs.filter(i => i.status !== 'Paid').reduce((sum, i) => sum + (i.certifiedGrossValue ?? i.invoiceGrossValue), 0);
 
   const pendingClaimsCount = claims.filter(c => c.status === 'Submitted' || c.status === 'Under Review').length;
   const pendingClaimsValue = claims.filter(c => c.status === 'Submitted' || c.status === 'Under Review').reduce((sum, c) => sum + c.additionalClaimedAmount, 0);

@@ -19,6 +19,10 @@ export interface FinancialSettings {
   advancePaymentPercentage: number; // e.g. 10.0 (for 10%)
   defaultCurrency: string; // e.g. "AED"
   currencyDisplayMode: 'individual' | 'converted';
+  
+  // Optional dynamic tax and cap settings
+  retentionCapPercentage?: number; // e.g. 5.0 (for 5% of Contract Value cap)
+  withholdingTaxPercentage?: number; // e.g. 1.0 (for 1% withholding tax)
 }
 
 export interface TimelineSettings extends TimelineRules {

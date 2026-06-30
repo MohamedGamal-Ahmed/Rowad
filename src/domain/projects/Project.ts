@@ -98,7 +98,7 @@ export interface Project extends BaseEntity {
   consultant: string; // References Consultant Name/ID
   mainContractor: string; // References Contractor Name/ID
   contractType: string; // Contract Type
-  contractValue: number; // Contract Value
+  signedContractValue: number; // Signed Contract Value at Project Award
   currency: string; // Currency (e.g., AED, SAR, EGP)
   country: string; // Country
   city: string; // City
@@ -112,6 +112,11 @@ export interface Project extends BaseEntity {
   lifecycleStage: 'Pre-Award' | 'Awarded' | 'Execution' | 'Closing' | 'Archived';
   description?: string;
   settings?: ProjectSettings; // Project-level settings override
+ 
+  // Advanced Change Management Baseline Fields
+  revisedContractValue?: number;
+  approvedVariationTotal?: number;
+  approvedEotDays?: number;
 }
 
 export interface ProjectMeeting extends BaseEntity {
@@ -162,6 +167,15 @@ export interface ProjectIPC extends BaseEntity {
   remarks?: string;
   status: string;
   payments?: Payment[];
+
+  // Advanced Commercial IPC Engine Fields
+  certifiedGrossValue?: number;
+  retentionDeduction?: number;
+  advanceRecovery?: number;
+  withholdingTax?: number;
+  netCertifiedAmount?: number;
+  previousIpcGrossCumulative?: number;
+  previousIpcNetCumulative?: number;
   
   // Cross-Module Relationships
   relatedVOIds?: string[];
@@ -235,6 +249,7 @@ export interface ProjectVariationOrder extends BaseEntity {
     approvalDate: string;
     approvedAmount: number;
     approvalReference: string;
+    approvedEotDays?: number;
   };
 
   // Cross-Module Relationships

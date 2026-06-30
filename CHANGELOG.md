@@ -2,7 +2,47 @@
 
 All notable changes to the **ROWAD Enterprise Platform** will be documented in this file.
 
-## [1.2.0] - Unreleased
+## [1.3.0] - 2026-06-30
+
+Development Sprints:
+- Sprint 3 - Commercial Modules (IPC + VO + NOC + Subcontracts)
+- Sprint 3E - Commercial Domain Consolidation
+- QA Gate (v1.3.0 RC1)
+
+### Fixed (QA Gate v1.3.0 RC1)
+- **FIX-QA-001 — `revisedContractValue` stale on Project edit** (`AddProject.tsx`): When editing an existing project and changing the `signedContractValue`, the `revisedContractValue` was preserved from the entity's old stored value instead of being recalculated. This has been corrected to always compute `signedContractValue + (approvedVariationTotal ?? 0)`, ensuring the commercial baseline remains consistent with the business rule across all downstream consumers (IPCsPanel, SubcontractorsPanel, SPR engine).
+
+### Added (Sprint 3E - Commercial Domain Consolidation)
+- **Domain Baseline Consolidation**: Renamed legacy `contractValue` to `signedContractValue`, deleted redundant `originalContractValue`, and renamed `approvedVoTotal` to `approvedVariationTotal` to clean up the Project Aggregate commercial model.
+- **Decoupled Versioned Migration Runner**: Created a schema-upgrade bootstrapper (`MigrationRunner` and `Migration_001_ProjectCommercialBaseline`) to safely map legacy local storage records during startup, keeping repositories purely CRUD.
+- **Acyclic Baseline Calculation Flow**: Refactored `CalculationService.calculateProjectChangeBaseline` to establish `signedContractValue` immutability, calculate `approvedVariationTotal`, and update `revisedContractValue`. All downstream modules (IPCs, Subcontracts, Claims, NOCs, SPR) read this baseline but never modify it.
+
+### Added (Sprint 3D - Single Paper Report Completion)
+- **Dynamic SPR Live Aggregation**: Connected the Monthly Executive SPR read model directly to active operational transactions, calculating cumulative IPC certified/paid totals, outstanding balances, subcontractor commitments/invoicing, claims costs/EOT, and regulatory NOC counts.
+- **SPR UI Sections**: Added "Cumulative Project Commitments" and "Government Permitting" sections to the generated report template.
+
+### Added (Sprint 3C - NOC & Subcontracts Module)
+- **NOC Permit Expiry Banners**: Integrated real-time expiry checking into `NOCsPanel` to warn of expired and expiring approved permits in both English and Arabic.
+- **NOC Contextual Attachments**: Embedded file metadata upload lists directly inside the NOC form view.
+- **Subcontracts Filter & Search**: Added search bar, WBS package filter dropdowns, and delete capabilities in `SubcontractorsPanel`.
+- **Subcontract Budget Overrun Enforcement**: Validated subcontractor total commitment values against the project's revised contract baseline to prevent portfolio overspending.
+
+### Added (Sprint 3B - Variation Orders Engine)
+- **Dynamic Baseline Calculator**: Added `calculateProjectChangeBaseline` to `CalculationService` to compute contract variations (additions and omissions), EOT adjustments, and revised contract totals dynamically based on approved VOs.
+- **Automated Baseline Sync**: Extended `ProjectLookupService.saveVariationOrder()` to automatically recalculate and persist the updated Project Commercial Baseline (`originalContractValue`, `revisedContractValue`, `approvedVoTotal`, and `approvedEotDays`) on every VO mutation (create, status change, archive, restore).
+- **State-Safe VO Validator**: Created `VOLifecycleValidator` to validate state transitions (`Draft` -> `Submitted` -> `Under Review` -> `Approved` -> `Implemented` or `Rejected`), block negative time impacts, and mandate approval references, dates, and amounts before transitioning to Approved/Implemented status.
+- **Downstream IPC Integration**: Integrated revised contract values directly into the IPC calculation pipeline so subsequent certified progress claims automatically consume the latest project commercial baseline.
+- **Expanded VO Workspace Form**: Updated `VOsPanel` to support full data entry for technical description (addition/omission/transfer type, detail description, merits), employer instruction (EI/AI/VO type, instruction date, reference), contractor commercial offer (proposed cost/EOT impact, RFV ref, offer date, submission status), and approved baseline details (approval reference, date, amount, approved EOT, and override checkbox).
+- **Dynamic Card Listing**: Replaced hardcoded currency in the VO card registry with the dynamic project currency from the master project record.
+
+### Added (Sprint 3A - Commercial IPC Engine)
+- **Advanced Commercial IPC Engine Fields**: Extended the `ProjectIPC` domain interface with certified gross value, retention deduction, advance recovery, withholding tax, net certified amount, previous gross cumulative, and previous net cumulative.
+- **Dynamic Commercial Calculator**: Added `calculateIpcCommercials` to `CalculationService` to compute certificate-level deductions, advance recovery, and tax withholding dynamically using project contract baselines and settings.
+- **Auto-Suggest Payment Status**: Integrated status suggestion logic that automatically updates the certificate status to `Certified`, `Partially Paid`, or `Paid` based on actual cash receipts.
+- **Unified IPC Validator**: Created `IpcValidator` to validate input constraints, ensuring net amounts are non-negative, payment logs do not exceed net certified values, and required fields are populated.
+- **Interactive UI Fields**: Exposed consultant certification and dynamic deduction tables in `IPCsPanel` to provide full real-time calculation previews during creation and editing.
+
+## [1.2.0] - 2026-06-30
 
 Development Sprint:
 Sprint 2 - Tender & Award
@@ -38,7 +78,7 @@ Sprint 2 - Tender & Award
 - **D-001 — Removed unused imports (`ProjectDashboard.tsx`)**: Removed 13 unused Lucide icon imports (`Building2`, `Users`, `Calendar`, `Pickaxe`, `Award`, `Receipt`, `AlertTriangle`, `PenTool`, `HelpCircle`, `Link`, `CheckCircle2`, `AlertCircle`, `FileSpreadsheet`) and the unused `BiText` import.
 - **D-001 — Removed unused imports (`useOngoingTenders.ts`)**: Removed `HealthCalculator` and `HealthStatus` imports that were included but never called in the hook body. Also removed the unreferenced `eventRepo` variable declaration in `handleStatusTransition`.
 - **D-003 — Documented Award path decision (`TenderAwardService.ts`)**: Added inline architectural comment explaining why `awardLegacyTender()` sets `workflowStatus` directly rather than routing through `transitionTenderStatus()` — prevents stale-repo-read during award and duplicate BusinessEvent logging. The canonical Award path and validator enforcement are documented at the call site.
-- **D-005 — Corrected `ROADMAP_STATUS.md` verification row**: Sprint 2 Verification row corrected from `✅ Completed` to `🟡 Pending` — verification passes but git commit, tag `v1.2.0`, and push remain pending Sprint Exit approval.
+- **D-005 — Corrected `ROADMAP_STATUS.md` verification row**: Sprint 2 Verification row updated to `✅ Completed` after git commit, tagging `v1.2.0`, and push were finalized.
 
 ## [1.1.0] - 2026-06-30
 - **SPR Runtime Stability**: Resolved the root cause of monthly report rendering crashes in `SprReportingEngine.tsx` by implementing complete null-safety and type-safety checks inside monthly data compilation filters.

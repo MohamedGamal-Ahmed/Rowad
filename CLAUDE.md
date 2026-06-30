@@ -403,6 +403,35 @@ Scan → Understand → Implement → Type Check → Build → Regression → Co
 
 Skipping steps is how regressions happen.
 
+### Engineering Execution Rule: One Business Module Per Iteration
+
+The ROWAD Enterprise Platform follows a strict incremental implementation policy.
+
+Only ONE business module may be modified during a development iteration.
+
+Each module must complete the following sequence before another module begins:
+
+1. Implementation
+2. Type Check
+3. Build Verification
+4. Manual Verification
+5. Regression Testing
+6. Documentation Update
+7. CHANGELOG Update
+8. Git Commit
+9. Git Push
+
+Only after all nine steps are complete may the next business module begin.
+
+This policy exists to:
+- minimize regression risk
+- simplify debugging
+- keep Git history clean
+- isolate business changes
+- maintain enterprise-grade stability
+
+This rule applies to every Sprint unless explicitly overridden by the CTO.
+
 ---
 
 ## 15. Decision Log (ADRs)

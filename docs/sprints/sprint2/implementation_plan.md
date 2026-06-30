@@ -1,7 +1,7 @@
 # Implementation Plan - Sprint 2 (Tender Award Workflow)
 
 Product Version:
-v1.2.0 pending
+v1.2.0
 
 Development Sprint:
 Sprint 2 - Tender & Award
