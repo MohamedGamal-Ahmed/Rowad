@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Save, ArrowLeft, ArrowRight, Building2, HelpCircle } from 'lucide-react';
-import { Project } from '../../../domain/projects/Project';
+import { Project, ProjectLifecycleStage } from '../../../domain/projects/Project';
 import { MasterDataRepository } from '../../../repositories/MasterDataRepository';
 import { SearchableAutocomplete } from '../../../components/SearchableAutocomplete';
 import { RecordStatus } from '../../../enums/RecordStatus';
@@ -164,7 +164,7 @@ export function AddProject({
       startDate,
       completionDate,
       status,
-      lifecycleStage: status === 'Active' ? 'Execution' : (status === 'Pre-Award' ? 'Pre-Award' : (status === 'Completed' ? 'Closing' : 'Archived')),
+      lifecycleStage: status === 'Active' ? ProjectLifecycleStage.EXECUTION : (status === 'Pre-Award' ? ProjectLifecycleStage.PRE_AWARD : (status === 'Completed' ? ProjectLifecycleStage.CLOSING : ProjectLifecycleStage.ARCHIVED)),
       description: description.trim() ? description : undefined,
       settings: entity?.settings
     };

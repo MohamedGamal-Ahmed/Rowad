@@ -5,6 +5,7 @@ import {
   Flame, ArrowUpRight
 } from 'lucide-react';
 import { Project, ProjectMeeting, ProjectIPC, ProjectClaim, ProjectVariationOrder, ProjectNOC, ProjectDocument, ContextualAttachment, ProjectHistory } from '../../../../domain/projects/Project';
+import { ProjectStatusBadge, ProjectLifecycleBadge } from '../../../../components/ProjectStatusBadges';
 
 interface ProjectDashboardProps {
   lang: 'ar' | 'en';
@@ -100,18 +101,8 @@ export function ProjectDashboard({
               <span className="px-2.5 py-0.5 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-black tracking-wider rounded border border-slate-150 dark:border-slate-750 font-mono uppercase">
                 {project.code}
               </span>
-              <span className={`px-2.5 py-0.5 text-[10px] font-extrabold rounded-full border ${
-                project.lifecycleStage === 'Execution' 
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-950/30' 
-                  : project.lifecycleStage === 'Pre-Award'
-                  ? 'bg-indigo-50 text-indigo-700 border-indigo-100 dark:bg-indigo-950/30'
-                  : 'bg-amber-50 text-amber-700 border-amber-100'
-              }`}>
-                {isAr ? `المرحلة: ${project.lifecycleStage === 'Pre-Award' ? 'قبل الترسية' : project.lifecycleStage === 'Execution' ? 'التنفيذ والتشغيل' : project.lifecycleStage}` : `STAGE: ${project.lifecycleStage.toUpperCase()}`}
-              </span>
-              <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 text-[9px] rounded-full font-bold">
-                {project.status}
-              </span>
+              <ProjectLifecycleBadge lifecycleStage={project.lifecycleStage} lang={lang} />
+              <ProjectStatusBadge status={project.status} lang={lang} />
             </div>
             <h1 className="text-2xl font-black text-brand-navy dark:text-slate-100 tracking-tight leading-tight">
               {isAr && project.nameAr ? project.nameAr : project.nameEn}
@@ -125,7 +116,8 @@ export function ProjectDashboard({
             {/* Visual Lifecycle Stage Tracker */}
             <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950/50 p-2 rounded-xl border border-slate-100 dark:border-slate-850 text-[10px] font-bold w-full sm:w-auto justify-between">
               {['Pre-Award', 'Awarded', 'Execution', 'Closing', 'Archived'].map((stage, idx) => {
-                const isActive = project.lifecycleStage === stage;
+                const isActive = project.lifecycleStage === stage || 
+                  (stage === 'Awarded' && (project.lifecycleStage === 'Pending Project Setup' || project.lifecycleStage === 'Ready for Mobilization'));
                 return (
                   <div key={stage} className="flex items-center gap-1">
                     {idx > 0 && <span className="text-slate-300 dark:text-slate-700 mx-0.5">→</span>}

@@ -1,7 +1,7 @@
 import { 
   Project, ProjectMeeting, ProjectIPC, ProjectClaim, ProjectVariationOrder, ProjectNOC, 
   ProjectSPR, ProjectSubcontract, ProjectDocument, ProjectAttachment, ProjectHistory,
-  WBSPackage, ContextualAttachment, ProjectSettings
+  WBSPackage, ContextualAttachment, ProjectSettings, ProjectLifecycleStage
 } from '../domain/projects/Project';
 import { baselineProjects } from '../seed/projectSeed';
 import {
@@ -22,6 +22,7 @@ import {
 } from '../seed/projectDocsSeed';
 
 export class ProjectRepository {
+  public static onSaveCallback?: () => void;
   private apiEndpoint = '/api/projects';
 
   /**
@@ -34,7 +35,7 @@ export class ProjectRepository {
     const migrated = list.map(p => {
       let changed = false;
       if (!p.lifecycleStage) {
-        p.lifecycleStage = p.status === 'Pre-Award' ? 'Pre-Award' : 'Execution';
+        p.lifecycleStage = (p.status as string) === 'Pre-Award' ? ProjectLifecycleStage.PRE_AWARD : ProjectLifecycleStage.EXECUTION;
         changed = true;
       }
       if (!p.settings) {
@@ -74,6 +75,9 @@ export class ProjectRepository {
         project.id,
         project.code
       );
+      if (ProjectRepository.onSaveCallback) {
+        ProjectRepository.onSaveCallback();
+      }
       return true;
     } catch (e) {
       console.error('Error saving project', e);
@@ -89,10 +93,37 @@ export class ProjectRepository {
       const list = await this.getAll();
       const filtered = list.filter(p => p.id !== id);
       localStorage.setItem('pmo_projects_master', JSON.stringify(filtered));
+      if (ProjectRepository.onSaveCallback) {
+        ProjectRepository.onSaveCallback();
+      }
       return true;
     } catch (e) {
       console.error('Error deleting project', e);
       return false;
+    }
+  }
+
+  /**
+   * Sprint 4A Persistence Hotfix — canonical single-project read path.
+   *
+   * Returns a DEEP CLONE of the stored project so consumers cannot mutate
+   * the underlying array element (which would leak into any cached view
+   * held by ProjectLookupService). Every ProjectSetupService method reads
+   * through this path.
+   *
+   * Returns `undefined` when the project is not present. Never throws.
+   */
+  public async getById(id: string): Promise<Project | undefined> {
+    try {
+      const list = await this.getAll();
+      const found = list.find(p => p.id === id);
+      if (!found) return undefined;
+      // Deep clone via JSON roundtrip — all Project fields are JSON-serializable
+      // (dates are stored as ISO strings; no functions, symbols, or cycles).
+      return JSON.parse(JSON.stringify(found)) as Project;
+    } catch (e) {
+      console.error('Error loading project by id', e);
+      return undefined;
     }
   }
 

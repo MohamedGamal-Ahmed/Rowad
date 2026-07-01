@@ -3,11 +3,12 @@ import {
   Building2, Calendar, DollarSign, FileText, Pickaxe, Award, Receipt, 
   AlertTriangle, PenTool, Clock, Settings, Paperclip, Plus, ArrowLeft, 
   ArrowRight, Save, Trash2, CheckCircle2, AlertCircle, Eye, Download, Landmark,
-  Send, ListFilter, Activity, Link, Users, FilePlus2, Play, Folder, Search
+  Send, ListFilter, Activity, Link, Users, FilePlus2, Play, Folder, Search, Lock
 } from 'lucide-react';
 import { 
   Project, ProjectMeeting, ProjectIPC, ProjectClaim, ProjectVariationOrder, ProjectNOC, 
-  ProjectSPR, ProjectSubcontract, ProjectDocument, ContextualAttachment, ProjectHistory, WBSPackage 
+  ProjectSPR, ProjectSubcontract, ProjectDocument, ContextualAttachment, ProjectHistory, WBSPackage,
+  ProjectWorkflowState
 } from '../../../domain/projects/Project';
 import { ProjectLookupService } from '../../../services/ProjectLookupService';
 import { Contractor, ScopeOfWork, DocumentType } from '../../../domain/master/MasterData';
@@ -15,6 +16,10 @@ import { RecordStatus } from '../../../enums/RecordStatus';
 import { BiText } from '../../../components/BiText';
 import { FinancialsCalculator } from '../../../business-rules/FinancialsCalculator';
 import { useDialog } from '../../../components/ui/DialogProvider';
+import { ProjectSetupWizard } from './workspace/ProjectSetupWizard';
+import { ProjectSetupService } from '../../../services/ProjectSetupService';
+import { ErrorBoundary } from '../../../components/ErrorBoundary';
+import { ProjectWorkflowStateBadge, ProjectStatusBadge, ProjectLifecycleBadge } from '../../../components/ProjectStatusBadges';
 
 // Enterprise modular components imports
 import { ProjectDashboard } from './workspace/ProjectDashboard';
@@ -41,6 +46,7 @@ interface ProjectWorkspaceProps {
 
 const TABS = [
   { id: 'dashboard', icon: Building2, label: { en: 'Dashboard', ar: 'لوحة التحكم' } },
+  { id: 'setup', icon: Settings, label: { en: 'Project Setup', ar: 'تهيئة المشروع' } },
   { id: 'wbs', icon: Folder, label: { en: 'WBS Hierarchy', ar: 'هيكل الأعمال (WBS)' } },
   { id: 'overview', icon: Building2, label: { en: 'Overview', ar: 'ميثاق المشروع' } },
   { id: 'meetings', icon: Users, label: { en: 'Meetings', ar: 'الاجتماعات' } },
@@ -90,6 +96,18 @@ export function ProjectWorkspace({
   const [project, setProject] = useState<Project | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [wbsPackages, setWbsPackages] = useState<WBSPackage[]>([]);
+  const [setupValidationReport, setSetupValidationReport] = useState<any>(null);
+
+  useEffect(() => {
+    async function fetchValidation() {
+      if (project && project.workflowState !== ProjectWorkflowState.ACTIVE) {
+        const setupService = new ProjectSetupService();
+        const results = await setupService.validateSteps(project.id);
+        setSetupValidationReport(results);
+      }
+    }
+    fetchValidation();
+  }, [project?.id, project?.workflowState]);
   
   // Track expanded cards and search focuses
   const [expandedRecordId, setExpandedRecordId] = useState<string | null>(null);
@@ -272,6 +290,12 @@ export function ProjectWorkspace({
     }
     loadMasters();
   }, [currentProjectId]);
+
+  useEffect(() => {
+    if (project && project.isSetupComplete === false) {
+      setActiveTab('setup');
+    }
+  }, [project]);
 
   // BR-CAL-005: Automatic End Time calculation for meetings based on Start Time + Duration
   const calculatedEndTime = React.useMemo(() => {
@@ -541,9 +565,9 @@ export function ProjectWorkspace({
                 ))}
               </select>
 
-              <span className="px-2.5 py-0.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border border-emerald-100/50 text-[10px] font-bold rounded-full">
-                {isAr ? 'مشروع منفذ نشط' : 'PROJECT ACTIVE'}
-              </span>
+              <ProjectWorkflowStateBadge workflowState={project.workflowState} lang={lang} />
+              <ProjectStatusBadge status={project.status} lang={lang} />
+              <ProjectLifecycleBadge lifecycleStage={project.lifecycleStage} lang={lang} />
             </div>
             <h1 className="text-xl md:text-2xl font-black text-brand-navy dark:text-slate-100 tracking-tight leading-tight truncate">
               {isAr && project.nameAr ? project.nameAr : project.nameEn}
@@ -590,29 +614,117 @@ export function ProjectWorkspace({
       {/* Notion-style Tabs Ribbon */}
       <div className="overflow-x-auto premium-scrollbar border-b border-slate-200 dark:border-slate-800 pb-2">
         <div className="flex items-center gap-5 min-w-max px-2">
-          {TABS.map(tab => (
-            <button 
-              key={tab.id}
-              onClick={() => { setActiveTab(tab.id); setShowForm(false); }}
-              className={`flex items-center gap-2 pb-3.5 px-1 border-b-2 transition-all font-bold text-xs cursor-pointer
-                ${activeTab === tab.id 
-                  ? 'border-brand-red text-brand-red' 
-                  : 'border-transparent text-slate-400 hover:text-slate-600'
-                }
-              `}
-            >
-              <tab.icon className={`w-4 h-4 ${activeTab === tab.id ? 'text-brand-red' : 'text-slate-400'}`} />
-              <BiText text={tab.label} primaryLang={lang} stacked={false} />
-            </button>
-          ))}
+          {TABS.map(tab => {
+            const isLocked = project?.workflowState !== ProjectWorkflowState.ACTIVE && ['dashboard', 'ipc', 'claims', 'vo', 'noc', 'spr', 'subcontractors', 'settings'].includes(tab.id);
+            return (
+              <button 
+                key={tab.id}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  setShowForm(false);
+                }}
+                className={`flex items-center gap-2 pb-3.5 px-1 border-b-2 transition-all font-bold text-xs cursor-pointer
+                  ${activeTab === tab.id 
+                    ? 'border-brand-red text-brand-red' 
+                    : 'border-transparent text-slate-400 hover:text-slate-600'
+                  }
+                `}
+              >
+                {isLocked ? (
+                  <Lock className={`w-3.5 h-3.5 ${activeTab === tab.id ? 'text-brand-red' : 'text-slate-350'}`} />
+                ) : (
+                  <tab.icon className={`w-4 h-4 ${activeTab === tab.id ? 'text-brand-red' : 'text-slate-400'}`} />
+                )}
+                <BiText text={tab.label} primaryLang={lang} stacked={false} />
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {/* Tab Workstations Area */}
       <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 rounded-[32px] p-6 shadow-sm min-h-[450px]">
-        
-        {/* DASHBOARD TAB */}
-        {activeTab === 'dashboard' && (
+        {project?.workflowState !== ProjectWorkflowState.ACTIVE && ['dashboard', 'ipc', 'claims', 'vo', 'noc', 'spr', 'subcontractors', 'settings'].includes(activeTab) ? (
+          <div className="flex flex-col items-center justify-center p-8 text-center min-h-[400px] bg-slate-50/50 dark:bg-slate-950/20 border border-dashed rounded-3xl relative overflow-hidden backdrop-blur-xs">
+            <div className="absolute inset-0 bg-radial-gradient from-brand-red/5 to-transparent pointer-events-none opacity-40" />
+            
+            <div className="w-14 h-14 bg-rose-50 border border-rose-100 rounded-full flex items-center justify-center mb-4 text-rose-600 shadow-sm animate-pulse">
+              <Lock className="w-6 h-6" />
+            </div>
+
+            <h3 className="text-base font-extrabold text-brand-navy dark:text-slate-100 mb-1">
+              {isAr ? 'هذا القسم مغلق حالياً' : 'Module is Temporarily Locked'}
+            </h3>
+            <p className="text-xs text-slate-400 max-w-md mb-6 leading-relaxed">
+              {isAr 
+                ? 'لا يمكن تفعيل أقسام التنفيذ والمطالبات المالية والمستخلصات لهذا المشروع قبل استكمال متطلبات التهيئة والتنشيط الإداري.' 
+                : 'Execution, claims, and commercial modules are locked until project setup requirements are met and the project is activated.'}
+            </p>
+
+            <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/80 rounded-2xl p-5 text-left font-sans shadow-sm">
+              <h4 className="text-[10px] font-black text-slate-450 uppercase tracking-wider mb-3 border-b pb-2 flex justify-between items-center">
+                <span>{isAr ? 'متطلبات تفعيل بوابة المشروع' : 'Project Gateway Setup Checklist'}</span>
+                {setupValidationReport && (
+                  <span className="text-brand-red font-mono text-[11px] font-black">{setupValidationReport.readinessScore}%</span>
+                )}
+              </h4>
+
+              <div className="space-y-2.5">
+                {[
+                  { 
+                    label: isAr ? 'البيانات التعاقدية والمالية' : 'Commercial Setup', 
+                    ok: setupValidationReport?.commercial?.isValid,
+                    info: setupValidationReport?.commercial?.errors?.[0]
+                  },
+                  { 
+                    label: isAr ? 'البرنامج الزمني والتواريخ' : 'Schedule Setup', 
+                    ok: setupValidationReport?.schedule?.isValid,
+                    info: setupValidationReport?.schedule?.errors?.[0]
+                  },
+                  { 
+                    label: isAr ? 'فريق عمل مكتب المشروع' : 'Project Office Assignments', 
+                    ok: setupValidationReport?.office?.isValid,
+                    info: setupValidationReport?.office?.errors?.[0]
+                  },
+                  { 
+                    label: isAr ? 'تدقيق وحصر المستندات' : 'Document Checklist', 
+                    ok: setupValidationReport?.documents?.isValid,
+                    info: setupValidationReport?.documents?.errors?.[0] || setupValidationReport?.documents?.warnings?.[0]
+                  }
+                ].map((item, idx) => (
+                  <div key={idx} className="flex items-start justify-between p-2 hover:bg-slate-50 dark:hover:bg-slate-950/20 rounded-xl transition-all">
+                    <div className="flex gap-2.5 items-start">
+                      <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${item.ok ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-slate-50 text-slate-400 border border-slate-150'}`}>
+                        {item.ok ? '✓' : '✗'}
+                      </span>
+                      <div>
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-350 block leading-tight">{item.label}</span>
+                        {!item.ok && item.info && (
+                          <span className="text-[10px] text-rose-500 font-semibold block mt-0.5">{item.info}</span>
+                        )}
+                      </div>
+                    </div>
+                    <span className={`text-[9px] font-black rounded-full px-2 py-0.5 border ${item.ok ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-rose-50 border-rose-100 text-rose-700'}`}>
+                      {item.ok ? (isAr ? 'مستوفى' : 'PASS') : (isAr ? 'مطلوب' : 'PENDING')}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex justify-end">
+                <button
+                  onClick={() => setActiveTab('setup')}
+                  className="px-4 py-2 bg-brand-red hover:bg-brand-red/90 text-white rounded-xl text-xs font-bold font-sans cursor-pointer transition-all shadow-sm"
+                >
+                  {isAr ? 'الذهاب إلى صفحة التهيئة ←' : 'Go to Project Setup →'}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* DASHBOARD TAB */}
+            {activeTab === 'dashboard' && (
           <ProjectDashboard
             lang={lang}
             project={project}
@@ -631,6 +743,24 @@ export function ProjectWorkspace({
               setExpandedRecordId(recordId);
             }}
           />
+        )}
+
+        {/* PROJECT SETUP TAB */}
+        {activeTab === 'setup' && (
+          <ErrorBoundary
+            label={isAr ? 'معالج تهيئة المشروع' : 'Project Setup Wizard'}
+            lang={lang}
+            onRecover={() => setActiveTab('dashboard')}
+          >
+            <ProjectSetupWizard
+              lang={lang}
+              projectId={project.id}
+              onComplete={async () => {
+                await reloadAllProjectData(project.id);
+                setActiveTab('dashboard');
+              }}
+            />
+          </ErrorBoundary>
         )}
 
         {/* WBS HIERARCHY TAB */}
@@ -822,6 +952,7 @@ export function ProjectWorkspace({
             project={project}
             lang={lang}
             documents={documents}
+            attachments={attachments}
             wbsPackages={wbsPackages}
             reloadAllProjectData={reloadAllProjectData}
             expandedRecordId={expandedRecordId}
@@ -878,7 +1009,8 @@ export function ProjectWorkspace({
             projectId={project.id}
           />
         )}
-
+          </>
+        )}
       </div>
 
     </div>

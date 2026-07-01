@@ -16,6 +16,11 @@ export class ProjectLookupService {
     this.projectRepo = new ProjectRepository();
     this.masterRepo = new MasterDataRepository();
     this.cache = new Map();
+
+    // Register callback to automatically invalidate lookup cache on repository writes
+    ProjectRepository.onSaveCallback = () => {
+      this.refresh();
+    };
   }
 
   public static getInstance(): ProjectLookupService {

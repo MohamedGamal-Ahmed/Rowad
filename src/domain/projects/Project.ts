@@ -76,7 +76,8 @@ export interface ContextualAttachment {
   projectId: string;
   entityType?: 'Claim' | 'VO' | 'IPC' | 'NOC' | 'Meeting' | 'Document' | 'Project' | 'Subcontract' | string;
   entityId?: string; // References the specific entity ID
-  category?: string; // e.g., 'Letters', 'Drawings', 'Photos', 'BOQ', 'Shop Drawings', 'Invoice', etc.
+  category?: string; // e.g., 'Letters', 'Drawings', 'Photos', 'BOQ', 'Shop Drawings', 'Invoice', 'Letter of Award', 'Signed Contract', 'Award Minutes', 'Clarifications', etc.
+  sourceModule?: string; // Traceability: which workflow produced this attachment, e.g. 'Award Confirmation'
   fileName: string;
   fileSize: string;
   uploadedBy: string;
@@ -86,38 +87,238 @@ export interface ContextualAttachment {
 
 export type ProjectAttachment = ContextualAttachment;
 
+export interface ProjectTeamMember {
+  roleId: string;
+  employeeId: string;
+  assignedAt: string;
+  delegation?: string;
+  approvalLevel?: string;
+}
+
+export interface ProjectDelegation {
+  id: string;
+  fromEmployeeId: string;
+  toEmployeeId: string;
+  roleId: string;
+  startDate: string;
+  endDate: string;
+  isActive: boolean;
+  remarks?: string;
+}
+
+export interface DistributionList {
+  id: string;
+  listName: string;
+  memberIds: string[];
+  isActive: boolean;
+}
+
+export interface ApprovalStep {
+  sequence: number;
+  roleId: string;
+  slaDays: number;
+}
+
+export interface ApprovalMatrixRule {
+  id: string;
+  module: 'IPC' | 'VO' | 'Claim' | 'Document' | 'NOC';
+  thresholdAmount?: number;
+  approvalSteps: ApprovalStep[];
+}
+
+export interface ProjectOffice {
+  id: string;
+  projectId: string;
+  teamMembers: ProjectTeamMember[];
+  delegations: ProjectDelegation[];
+  distributionLists: DistributionList[];
+  approvalMatrix: ApprovalMatrixRule[];
+}
+
+export interface CommercialSetup {
+  baseCurrency: string;
+  contractCurrency?: string;
+  exchangeRate: number;
+  exchangeRateDate?: string;
+  exchangeRateSource?: 'Manual' | 'Central Bank' | 'ERP' | 'API';
+  contractType: ContractType;
+  deliveryMethod?: DeliveryMethod;
+  retentionPercentage: number;
+  advancePaymentPercentage: number;
+  vatPercentage: number;
+  costCenterCode: string;
+  employer: string;
+}
+
+export interface ScheduleSetup {
+  startDate: string;
+  contractDurationDays: number;
+  mobilizationPeriodDays: number;
+  workingCalendar: string;
+  holidayCalendar: string;
+  timeZone: string;
+  workingHours: string;
+  weekendPattern: string;
+}
+
+export interface OfficeSetup {
+  teamMembers: ProjectTeamMember[];
+}
+
+export interface DocumentsSetup {
+  verifiedDocumentCategories: string[];
+}
+
+export interface ReviewState {
+  isCommercialValid: boolean;
+  isScheduleValid: boolean;
+  isOfficeValid: boolean;
+  isDocsValid: boolean;
+}
+
+export interface ProjectSetupDraft {
+  projectId: string;
+  currentStep: number;
+  lastSaved: string;
+  /** Step IDs (1-5) the user has advanced through with a passing validation state. Always an array — never undefined. */
+  completedSteps: number[];
+  commercial?: CommercialSetup;
+  schedule?: ScheduleSetup;
+  office?: OfficeSetup;
+  documents?: DocumentsSetup;
+  review?: ReviewState;
+}
+
+export enum ProjectLifecycleStage {
+  PRE_AWARD = 'Pre-Award',
+  PENDING_PROJECT_SETUP = 'Pending Project Setup',
+  READY_FOR_MOBILIZATION = 'Ready for Mobilization',
+  EXECUTION = 'Execution',
+  CLOSING = 'Closing',
+  ARCHIVED = 'Archived'
+}
+
+export enum ProjectWorkflowState {
+  DRAFT = 'Draft',
+  PENDING_ACTIVATION = 'Pending Activation',
+  ACTIVE = 'Active',
+  SUSPENDED = 'Suspended',
+  COMPLETED = 'Completed'
+}
+
+export enum ContractType {
+  LUMP_SUM = 'Lump Sum',
+  UNIT_RATE = 'Unit Rate',
+  COST_PLUS = 'Cost Plus',
+  FRAMEWORK = 'Framework',
+  DESIGN_BUILD = 'Design & Build',
+  EPC = 'EPC',
+  TARGET_COST = 'Target Cost',
+  REIMBURSABLE = 'Reimbursable'
+}
+
+export enum DeliveryMethod {
+  TRADITIONAL = 'Traditional',
+  DESIGN_BUILD = 'Design Build',
+  EPC = 'EPC',
+  FAST_TRACK = 'Fast Track',
+  JOINT_VENTURE = 'Joint Venture',
+  CONSTRUCTION_MANAGEMENT = 'Construction Management',
+  PPP = 'PPP',
+  ALLIANCE = 'Alliance'
+}
+
+export interface CalendarFoundation {
+  workingCalendar: string;
+  holidayCalendar: string;
+  timeZone: string;
+  workingHours: string;
+  weekendPattern: string;
+}
+
+export interface ProjectCommercialSettings {
+  contractCurrency: string;
+  baseCurrency: string;
+  exchangeRate: number;
+  exchangeRateDate?: string;
+  exchangeRateSource?: 'Manual' | 'Central Bank' | 'ERP' | 'API';
+  retentionPercentage: number;
+  advancePaymentPercentage: number;
+  vatPercentage: number;
+  costCenterCode: string;
+}
+
+export interface SetupAuditEvent {
+  id: string;
+  projectId: string;
+  userId: string;
+  timestamp: string;
+  sessionId: string;
+  correlationId: string;
+  step: 'COMMERCIAL' | 'SCHEDULE' | 'OFFICE' | 'DOCUMENTS' | 'ACTIVATION';
+  action: 'DRAFT_SAVED' | 'STEP_COMPLETED' | 'SETUP_COMPLETED' | 'ACTIVATED';
+  payload: string;
+}
+
+export enum ProjectStatus {
+  INACTIVE = 'Inactive',
+  MOBILIZING = 'Mobilizing',
+  ACTIVE = 'Active',
+  SUSPENDED = 'Suspended',
+  COMPLETED = 'Completed',
+  CLOSED = 'Closed',
+  ARCHIVED = 'Archived'
+}
+
 export interface Project extends BaseEntity {
   code: string; // Project Code
   sourceTenderId?: string;
   sourceTenderNumber?: string;
   awardedAt?: string;
+  loaReferenceNumber?: string; // LOA reference
   nameEn: string; // Project Name (English) - Required
   nameAr?: string; // Project Name (Arabic) - Optional
   client: string; // References Client Name/ID
   employer: string; // References Employer Name/ID
   consultant: string; // References Consultant Name/ID
   mainContractor: string; // References Contractor Name/ID
-  contractType: string; // Contract Type
+  contractType: ContractType; // Refined contract type
+  deliveryMethod?: DeliveryMethod; // Refined delivery method
   signedContractValue: number; // Signed Contract Value at Project Award
-  currency: string; // Currency (e.g., AED, SAR, EGP)
+  currency: string; // Legacy field (represents Contract Currency)
   country: string; // Country
   city: string; // City
-  projectManager: string; // Project Manager
-  coordinator: string; // Coordinator
+  projectManager: string; // Project Manager (Legacy / Fallback string)
+  coordinator: string; // Coordinator (Legacy / Fallback string)
   department: string; // Department
   businessUnit: string; // Business Unit (SSOT field)
   startDate: string; // ISO Date YYYY-MM-DD
   completionDate: string; // ISO Date YYYY-MM-DD
-  status: 'Active' | 'Pre-Award' | 'Completed' | 'Closed';
-  lifecycleStage: 'Pre-Award' | 'Awarded' | 'Execution' | 'Closing' | 'Archived';
+  contractDurationDays?: number; // Duration in calendar days
+  approvedEotDays?: number; // Total approved EOT days
+  contractualCompletionDate?: string; // Contractual completion date
+  revisedCompletionDate?: string; // Calculated: startDate + contractDurationDays + approvedEotDays
+  forecastCompletionDate?: string; // Planning forecast completion date
+  mobilizationPeriodDays?: number;
+  mobilizationDate?: string;
+  
+  status: ProjectStatus;
+  lifecycleStage: ProjectLifecycleStage;
+  workflowState?: ProjectWorkflowState;
+  awardAttachments?: ProjectAttachment[];
   description?: string;
   settings?: ProjectSettings; // Project-level settings override
+  isSetupComplete?: boolean; // Set to true after Setup Wizard completion
+  projectOffice?: ProjectOffice; // Dynamic team, approvals, delegations (optional for seeds/backward compatibility)
+  setupDraft?: ProjectSetupDraft; // Setup draft payload
+  calendarFoundation?: CalendarFoundation; // Scheduling parameters
+  commercialSettings?: ProjectCommercialSettings; // Commercial/Financial configuration
  
   // Advanced Change Management Baseline Fields
   revisedContractValue?: number;
   approvedVariationTotal?: number;
-  approvedEotDays?: number;
 }
+
 
 export interface ProjectMeeting extends BaseEntity {
   projectId: string;

@@ -5,10 +5,15 @@ import {
   Settings2, Check, ChevronsUpDown, ChevronUp, ChevronDown,
   Edit3, Archive, RotateCcw
 } from 'lucide-react';
-import { Project } from '../../../domain/projects/Project';
+import { Project, ProjectStatus, ProjectLifecycleStage } from '../../../domain/projects/Project';
 import { BiText } from '../../../components/BiText';
 import { ProjectKpiBoard } from './ProjectKpiBoard';
 import { useDialog } from '../../../components/ui/DialogProvider';
+import { Clock as ClockService } from '../../../services/Clock';
+import { Currency } from '../../../enums/Currency';
+import { FinancialsCalculator } from '../../../business-rules/FinancialsCalculator';
+import { AppConstants } from '../../../constants/AppConstants';
+import { ProjectStatusBadge } from '../../../components/ProjectStatusBadges';
 
 interface ProjectListProps {
   projects: Project[];
@@ -58,11 +63,26 @@ export function ProjectList({
 
   // KPI Calculations
   const kpis = useMemo(() => {
-    const total = projects.length;
-    const active = projects.filter(p => p.status === 'Active').length;
-    const preAward = projects.filter(p => p.status === 'Pre-Award').length;
-    const value = projects.reduce((sum, p) => sum + p.signedContractValue, 0);
-    return { total, active, preAward, value };
+    const nonArchived = projects.filter(p => p.recordStatus !== 'Archived');
+    const total = nonArchived.length;
+    const active = nonArchived.filter(p => p.status === ProjectStatus.ACTIVE || p.status === ProjectStatus.MOBILIZING).length;
+    
+    // Near Due Projects calculation referencing NEAR_DUE_THRESHOLD_DAYS
+    const nearDue = nonArchived.filter(p => {
+      if (p.status !== ProjectStatus.ACTIVE && p.status !== ProjectStatus.MOBILIZING) return false;
+      if (!p.completionDate) return false;
+      const daysRemaining = ClockService.diffInDays(p.completionDate);
+      return daysRemaining >= 0 && daysRemaining <= AppConstants.NEAR_DUE_THRESHOLD_DAYS;
+    }).length;
+
+    // Portfolio value: Sum contract values and dynamically convert to EGP using FinancialsCalculator
+    const moneyItems = nonArchived.map(p => ({
+      amount: p.revisedContractValue ?? p.signedContractValue ?? 0,
+      currency: p.currency as any
+    }));
+    const value = FinancialsCalculator.sumAmounts(moneyItems, Currency.EGP).amount;
+
+    return { total, active, nearDue, value };
   }, [projects]);
 
   // Filtering and Sorting
@@ -395,7 +415,16 @@ export function ProjectList({
             <tbody className="divide-y divide-slate-100 dark:divide-slate-850">
               {paginatedProjects.length > 0 ? (
                 paginatedProjects.map((p) => {
-                  const progressPct = p.status === 'Completed' ? 100 : p.status === 'Closed' ? 100 : p.status === 'Pre-Award' ? 0 : 42;
+                  // Dynamic Financial Progress computation or business layer fallback
+                  const progressVal = FinancialsCalculator.calculateFinancialProgress(p);
+                  const progressPct = (p.status === 'Completed' || p.status === 'Closed') 
+                    ? '100%' 
+                    : p.lifecycleStage === ProjectLifecycleStage.PRE_AWARD 
+                    ? '0%' 
+                    : progressVal !== undefined 
+                    ? `${progressVal}%` 
+                    : '—';
+
                   const rowPadding = density === 'compact' ? 'py-1.5 px-3' : 'py-3 px-4';
                   
                   return (
@@ -446,29 +475,21 @@ export function ProjectList({
                       )}
                       {visibleColumns.status && (
                         <td className={`${rowPadding} whitespace-nowrap`}>
-                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
-                            p.status === 'Active' ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border border-emerald-100/50' :
-                            p.status === 'Pre-Award' ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 border border-amber-100/50' :
-                            p.status === 'Completed' ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 border border-blue-100/50' :
-                            'bg-rose-50 dark:bg-rose-950/40 text-rose-600 border border-rose-100/50'
-                          }`}>
-                            {isAr ? {
-                              'Active': 'نشط',
-                              'Pre-Award': 'قبل الترسية',
-                              'Completed': 'مكتمل',
-                              'Closed': 'مغلق'
-                            }[p.status] : p.status}
-                          </span>
+                          <ProjectStatusBadge status={p.status} lang={lang} />
                         </td>
                       )}
                       {visibleColumns.progress && (
                         <td className={`${rowPadding} min-w-[100px]`}>
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono text-[10px] font-bold text-slate-400 shrink-0">{progressPct}%</span>
-                            <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                              <div className="h-full bg-brand-red" style={{ width: `${progressPct}%` }} />
+                          {progressPct === '—' ? (
+                            <span className="text-slate-400 font-semibold">{isAr ? 'غير متوفر' : 'Not Available'}</span>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-[10px] font-bold text-slate-400 shrink-0">{progressPct}</span>
+                              <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                <div className="h-full bg-brand-red" style={{ width: progressPct }} />
+                              </div>
                             </div>
-                          </div>
+                          )}
                         </td>
                       )}
                       <td className={`${rowPadding} text-right rtl:text-left`} onClick={(e) => e.stopPropagation()}>

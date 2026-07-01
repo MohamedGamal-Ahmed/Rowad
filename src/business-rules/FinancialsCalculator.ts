@@ -109,4 +109,12 @@ export class FinancialsCalculator {
   public static calculateAdvancePayment(contractSum: number, settings: FinancialSettings): number {
     return contractSum * (settings.advancePaymentPercentage / 100);
   }
+
+  /**
+   * Evaluates the dynamic Financial Progress of a project.
+   * Returns undefined if no calculation engine is implemented.
+   */
+  public static calculateFinancialProgress(project: any): number | undefined {
+    return undefined;
+  }
 }

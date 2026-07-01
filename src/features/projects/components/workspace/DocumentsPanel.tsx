@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Plus, Folder, Eye, FileText, Lock, Unlock, History, Save, X, Paperclip 
+import {
+  Plus, Folder, Eye, FileText, Lock, Unlock, History, Save, X, Paperclip, Award, Download
 } from 'lucide-react';
-import { Project, ProjectDocument, WBSPackage } from '../../../../domain/projects/Project';
+import { Project, ProjectDocument, WBSPackage, ContextualAttachment } from '../../../../domain/projects/Project';
 import { ProjectLookupService } from '../../../../services/ProjectLookupService';
 import { DocumentType } from '../../../../domain/master/MasterData';
 import { RecordStatus } from '../../../../enums/RecordStatus';
@@ -13,6 +13,7 @@ interface DocumentsPanelProps {
   project: Project;
   lang: 'ar' | 'en';
   documents: ProjectDocument[];
+  attachments?: ContextualAttachment[];
   wbsPackages: WBSPackage[];
   reloadAllProjectData: () => void;
   expandedRecordId: string | null;
@@ -25,6 +26,7 @@ export function DocumentsPanel({
   project,
   lang,
   documents,
+  attachments = [],
   wbsPackages,
   reloadAllProjectData,
   expandedRecordId,
@@ -237,8 +239,47 @@ export function DocumentsPanel({
     setNewRevFile('');
   };
 
+  const awardDocuments = attachments.filter(a => a.sourceModule === 'Award Confirmation');
+
   return (
     <div className="space-y-6 animate-in fade-in duration-300" id="documents-panel-container">
+
+      {/* AWARD DOCUMENTS — migrated automatically from the Award Confirmation wizard.
+          These are historical/traceability records (LOA, Signed Contract, Award Minutes,
+          Clarifications) and are not re-entered here; they live in the single canonical
+          attachment store, just grouped and surfaced for visibility in Document Control. */}
+      {awardDocuments.length > 0 && (
+        <div className="bg-slate-50 dark:bg-slate-950/20 border border-slate-150 dark:border-slate-850 rounded-2xl p-4 space-y-3" id="award-documents-section">
+          <div className="flex items-center gap-2">
+            <span className="p-1.5 bg-brand-navy/10 text-brand-navy rounded-lg">
+              <Award className="w-3.5 h-3.5" />
+            </span>
+            <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest font-mono">
+              {isAr ? 'مستندات الترسية' : 'Award Documents'}
+            </h4>
+            <span className="text-[9px] font-bold text-slate-400 bg-white dark:bg-slate-900 border px-1.5 py-0.5 rounded-full">
+              {awardDocuments.length}
+            </span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+            {awardDocuments.map(doc => (
+              <div key={doc.id} className="flex items-center justify-between gap-2 bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 rounded-xl p-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  <FileText className="w-4 h-4 text-slate-400 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-bold text-slate-700 dark:text-slate-200 truncate">{doc.fileName}</p>
+                    <p className="text-[9px] text-slate-400 font-mono">
+                      {doc.category} • {doc.uploadedBy} • {doc.uploadedDate}
+                    </p>
+                  </div>
+                </div>
+                <Download className="w-3.5 h-3.5 text-slate-350 shrink-0" />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest font-mono">
           {isAr ? 'سجل مراقبة وثائق ومستندات المشروع (Doc Control)' : 'Project Technical & Commercial Document Register'}

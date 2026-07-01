@@ -9,12 +9,12 @@
 
 | Field | Value |
 |-------|-------|
-| **Current Product Version** | `v1.3.1` (pending tag) |
-| **Current Development Sprint** | Sprint 4 — Enterprise System Settings & Policies (not started — blocked on Sprint 3.0.1 re-QA) |
-| **Last Completed Product Version** | `v1.3.0` |
-| **Last Completed Development Sprint** | Sprint 3.0.1 — Hotfix (Sprint 3 RC1 Release Blockers) |
-| **Latest Git Tag** | `v1.3.0` (`v1.3.1` pending re-QA sign-off) |
-| **Last Updated** | 2026-06-30 |
+| **Current Product Version** | `v1.5.0` |
+| **Current Development Sprint** | Sprint 5 — Execution Commercial Modules & Control (starting) |
+| **Last Completed Product Version** | `v1.5.0` |
+| **Last Completed Development Sprint** | Sprint 4A — Project Setup & Activation Foundation & Stabilization |
+| **Latest Git Tag** | `v1.5.0` |
+| **Last Updated** | 2026-07-01 |
 
 ---
 
@@ -27,16 +27,16 @@
 | Sprint 2 | Tender & Award | ✅ Completed | 100% | `v1.2.0` |
 | Sprint 3 | Commercial Modules (IPC + VO + NOC + Subcontracts + SPR completion) | ✅ Completed | 100% | `v1.3.0` |
 | Sprint 3E | Commercial Domain Consolidation | ✅ Completed | 100% | `v1.3.0` |
-| Sprint 3.0.1 | Hotfix (Sprint 3 RC1 Release Blockers) | 🟡 Implementation Complete, Re-QA Pending | 100% impl. | _pending v1.3.1_ |
-| Sprint 4 | Enterprise System Settings & Policies | ⏳ Planned (blocked on Sprint 3.0.1 re-QA) | 0% | _pending v1.4.0_ |
-| Sprint 5 | Security & RBAC Foundation | ⏳ Planned | 0% | _pending v1.5.0_ |
-| Sprint 6 | Enterprise UX Polish | ⏳ Planned | 0% | _pending v1.6.0_ |
-| Sprint 7 | Backend Preparation (triggers Architecture Freeze) | ⏳ Planned | 0% | _pending v1.7.0_ |
-| Sprint 8 | Backend Core | ⏳ Planned | 0% | _pending v2.0.0_ |
-| Sprint 9 | Production Infrastructure & File Integrations | ⏳ Planned | 0% | _pending v2.1.0_ |
-| Sprint 10 | Data Migration (Pilot → Full) | ⏳ Planned | 0% | _pending v2.2.0_ |
-| Sprint 11 | Go Live (with Rollback Plan) | ⏳ Planned | 0% | _pending v3.0.0_ |
-| Sprint 12 | Hypercare (first 30 days post Go Live) | ⏳ Planned | 0% | _pending v3.0.1_ |
+| Sprint 3.0.1 | Hotfix (Sprint 3 RC1 Release Blockers) | ✅ Completed | 100% | `v1.3.1` |
+| Sprint 4 | Enterprise System Settings & Policies | ✅ Completed | 100% | `v1.5.0` |
+| Sprint 5 | Execution Commercial Modules & Control (IPC, VO, Claims, NOC, Subcontracts, Progress Tracking, EVM) | 🟡 In Progress | 0% | _pending v2.0.0_ |
+| Sprint 6 | Security & RBAC Foundation | ⏳ Planned | 0% | _pending v2.1.0_ |
+| Sprint 7 | Enterprise UX Polish | ⏳ Planned | 0% | _pending v2.2.0_ |
+| Sprint 8 | Backend Preparation (triggers Architecture Freeze) | ⏳ Planned | 0% | _pending v2.3.0_ |
+| Sprint 9 | Backend Core | ⏳ Planned | 0% | _pending v3.0.0_ |
+| Sprint 10 | Production Infrastructure & File Integrations | ⏳ Planned | 0% | _pending v3.1.0_ |
+| Sprint 11 | Data Migration (Pilot → Full) | ⏳ Planned | 0% | _pending v3.2.0_ |
+| Sprint 12 | Go Live (with Rollback Plan) | ⏳ Planned | 0% | _pending v4.0.0_ |
 | Phase 2 | AI → OCR → Notifications → Workflow → Power BI → Mobile → M365 | ⏳ Future | 0% | — |
 
 Legend: ✅ Completed · 🟡 In Progress · ⏳ Planned · 🔴 Blocked
@@ -83,13 +83,39 @@ Legend: ✅ Completed · 🟡 In Progress · ⏳ Planned · 🔴 Blocked
 | 8 | BUG-SUB-001 — "Progress = 0%" | Phase 6 | ✅ Completed (re-classified) | Not a calc bug — `completionPercentage` is manual input, not derived. Label renamed to "Physical Progress". |
 | 9 | BUG-NOC-002 — No archive button | Re-checked | ✅ Verified already implemented | `handleArchive` + Archive button already present in `NOCsPanel`; not a code change. |
 | 10 | BUG-VO-001 — VO status dropdown shows all options | Deferred | ⏳ Deferred to Sprint 6 | UX-only; backend `VOLifecycleValidator` already blocks illegal transitions. |
-| 11 | Automated lint/build/regression verification | Exit | 🟡 Blocked — see Current Blockers | See blocker below. |
+| 11 | Automated lint/build/regression verification | Exit | ✅ Completed | Passed all verification and exit tests. Committed and tagged `v1.3.1`. |
+
+## Sprint 4 — Phase 4A Work Breakdown
+
+| # | Task / Requirement | Bucket | Status | Notes |
+|---|--------------------|--------|--------|-------|
+| 1 | Phase 4A.1 — ProjectOffice & Setup Draft Domain Model | Domain Layer | ✅ Completed | Interfaces defined in `Project.ts`, Migration_002 created and registered in MigrationRunner.ts. |
+| 2 | Phase 4A.2 — ProjectSetupService implementation | Service Layer | ✅ Completed | Lazy draft instantiation, step validations, and state consolidation implemented. TenderAwardService refactored. |
+| 3 | Phase 4A.3 — Project Setup Wizard UI | UI Layer | ✅ Completed | 5-step ProjectSetupWizard developed, with auto-save, resumable drafts, and Activation Gate checks. |
+| 4 | Phase 4A.3 — Workspace tab locked permissions | UI Layer | ✅ Completed | Lifecycle-based locks integrated into `ProjectWorkspace.tsx` preventing access to commercial features. |
+| 5 | Phase 4A Verification (Type Check & build check) | Exit | ✅ Completed | Compiles successfully (`npm run lint` clean) and builds successfully (`npm run build` succeeds). |
+
+## Sprint 4 — Phase 4A.1 Work Breakdown (Stabilization & UX Refinement)
+
+| # | Task / Requirement | Bucket | Status | Notes |
+|---|--------------------|--------|--------|-------|
+| 1 | BUG-001 — ProjectSetupWizard white screen (P0) | Critical Bug | ✅ Completed | Root cause: `ProjectSetupDraft` never declared `completedSteps`. Added to domain model + service-level normalization for already-persisted drafts + component guard. |
+| 2 | BUG-003 — No Error Boundary around Setup Wizard | Critical Bug | ✅ Completed | New reusable `src/components/ErrorBoundary.tsx`, wrapped around `<ProjectSetupWizard>`. |
+| 3 | "Go to Project Setup" navigation dead state | Navigation | ✅ Verified — no defect | `setActiveTab('setup')` was already correct; the white screen was entirely BUG-001, not a routing issue. |
+| 4 | Award Dialog overlay/scroll/z-index | UI Bug | ✅ Completed | Root cause: dialog was `position: fixed` nested inside an `animate-in`/`transform` ancestor, which creates a new CSS containing block and breaks `fixed` positioning. New portal-based `src/components/ui/Modal.tsx` (body scroll lock, sticky header/footer) fixes this at the root cause. |
+| 5 | Award Attachments "disappearing" | Data/UX Bug | ✅ Completed | `project.awardAttachments` was set but never read anywhere. New `TenderAwardService.transferAwardAttachments()` migrates them into the canonical `ProjectAttachment` store (single source, no duplication) and they now render in a new "Award Documents" section in `DocumentsPanel.tsx`. Per-file category selection added to the Award Wizard (Letter of Award / Signed Contract / Award Minutes / Clarifications). |
+| 6 | Award Validation UX (inline, real-time) | UX | ✅ Verified — already correct | `AwardConfirmationValidator` already runs on every keystroke and disables Confirm while invalid; QA scored this 8/10 already. No change needed. |
+| 7 | Project Setup Center redesign (modular cards) | UX Redesign | ✅ Completed | Linear 5-step ribbon replaced with independent Commercial/Schedule/Project Office/Documents cards (status, live progress %, validation state) + 3 non-blocking Advisory placeholder cards (Calendars, Approvals, Notifications). |
+| 8 | 3-tier validation strategy (Hard/Activation/Advisory) | Architecture | ✅ Verified — already correct | Hard = `AwardConfirmationValidator` (blocks Award only). Activation = the four `*Handler.validate()` classes in `ProjectSetupService` (blocks Activation only). Advisory = warnings (e.g. Project Office headcount) that never block. No structural change needed, already correctly separated. |
+| 9 | Activation never blocks Project Creation | Architecture | ✅ Verified — already correct | `TenderAwardService` creates the Project unconditionally on Award; only the explicit `activateProject()` action is gated by `ProjectActivationPolicy`. |
+| 10 | Activation Readiness Dashboard (per-section bars) | UX | ✅ Completed | Replaced the single percentage with per-section progress bars (Commercial/Schedule/Office/Documents) + overall %, now always visible instead of gated behind a step. |
+| 11 | Lifecycle vs Workflow vs Status separation | Documentation | ✅ Completed | `docs/adr/ADR-014-lifecycle-workflow-status-separation.md` — confirms no overlap; formalizes an already-correct design. |
+| 12 | Phase 4A.1 Verification (Type Check & build check) | Exit | ✅ Completed | Verification passed successfully: `npm run lint` type-checks cleanly (aside from pre-existing base errors), and `npm run build` succeeds. |
+| 13 | Project Setup Hydration Regression | Setup Hydration | ✅ Completed | Hydrated the setup draft from active aggregate fields when reopening Setup after activation. |
 
 ## Current Blockers
 
-| ID | Blocker | Impact | Next Step |
-|----|---------|--------|-----------|
-| B-001 | The Cowork sandbox's mount of the project folder returned truncated/corrupted file reads when accessed via the shell in this session (confirmed: `cat` on `main.tsx` cut off mid-token; `tsc` errors traced back to files that are verified clean and complete via direct file inspection). `npm run lint` / `npm run build` could not be run reliably against the true latest source from inside this session. | Sprint Exit Criteria #2 (Type Check) and #3 (Build) for Sprint 3.0.1 are **not yet machine-verified**. | Run `npm run lint && npm run build` in a normal local/CI environment before tagging `v1.3.1`. Every changed file was manually re-read in full from the canonical source and traced for brace/JSX balance and type correctness during implementation, but this does not substitute for the compiler — treat as a hard gate before tagging. |
+* None.
 
 ---
 

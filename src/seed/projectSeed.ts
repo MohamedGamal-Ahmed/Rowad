@@ -1,4 +1,4 @@
-import { Project } from '../domain/projects/Project';
+import { Project, ProjectLifecycleStage, ProjectStatus, ContractType } from '../domain/projects/Project';
 import { RecordStatus } from '../enums/RecordStatus';
 
 export const baselineProjects: Project[] = [
@@ -16,7 +16,7 @@ export const baselineProjects: Project[] = [
     employer: "ORA Developers Group",
     consultant: "ECOGIM Engineering",
     mainContractor: "Rowad General Contracting",
-    contractType: "Lump Sum",
+    contractType: ContractType.LUMP_SUM,
     signedContractValue: 1250000000,
     revisedContractValue: 1250000000,
     approvedVariationTotal: 0,
@@ -30,8 +30,8 @@ export const baselineProjects: Project[] = [
     businessUnit: "Infrastructure Unit",
     startDate: "2024-01-12",
     completionDate: "2026-12-30",
-    status: "Active",
-    lifecycleStage: "Execution",
+    status: ProjectStatus.ACTIVE,
+    lifecycleStage: ProjectLifecycleStage.EXECUTION,
     description: "Zone 02 infrastructure works for ORA's ZED East project including utility mains, structural excavation, roads, and landscape preparation."
   },
   {
@@ -48,7 +48,7 @@ export const baselineProjects: Project[] = [
     employer: "DGDA Executive Office",
     consultant: "Dar Al-Handasah",
     mainContractor: "Rowad General Contracting",
-    contractType: "Design & Build",
+    contractType: ContractType.DESIGN_BUILD,
     signedContractValue: 2450000000,
     revisedContractValue: 2450000000,
     approvedVariationTotal: 0,
@@ -62,8 +62,8 @@ export const baselineProjects: Project[] = [
     businessUnit: "Saudi Expansion Unit",
     startDate: "2024-06-01",
     completionDate: "2027-08-15",
-    status: "Pre-Award",
-    lifecycleStage: "Pre-Award",
+    status: ProjectStatus.INACTIVE,
+    lifecycleStage: ProjectLifecycleStage.PRE_AWARD,
     description: "Detailed engineering design and premium restoration works of the central Diriyah boulevard sub-structures with traditional mudbrick cladding integration."
   },
   {
@@ -80,7 +80,7 @@ export const baselineProjects: Project[] = [
     employer: "Sixth of October Development & Investment",
     consultant: "KEO International Consultants",
     mainContractor: "Rowad General Contracting",
-    contractType: "Unit Rate",
+    contractType: ContractType.UNIT_RATE,
     signedContractValue: 850000000,
     revisedContractValue: 850000000,
     approvedVariationTotal: 0,
@@ -94,8 +94,8 @@ export const baselineProjects: Project[] = [
     businessUnit: "Residential Building Unit",
     startDate: "2023-09-10",
     completionDate: "2026-05-20",
-    status: "Active",
-    lifecycleStage: "Execution",
+    status: ProjectStatus.ACTIVE,
+    lifecycleStage: ProjectLifecycleStage.EXECUTION,
     description: "Superstructure concrete frames and blockwork partition installation for residential clusters in Phase 3 of Eastown New Cairo."
   }
 ];

@@ -1,6 +1,7 @@
 export const AppConstants = {
   DATE_FORMAT: 'YYYY-MM-DD',
   DEFAULT_LANGUAGE: 'en' as 'en' | 'ar',
+  NEAR_DUE_THRESHOLD_DAYS: 90,
   OFFSETS: {
     DEFAULT_KICKOFF: -30,
     DEFAULT_RISK: -20,

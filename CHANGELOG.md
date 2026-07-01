@@ -2,6 +2,66 @@
 
 All notable changes to the **ROWAD Enterprise Platform** will be documented in this file.
 
+## [1.5.0] - 2026-07-01
+
+Development Sprint: Sprint 4A.4 — Post-Activation Consistency & Portfolio Synchronization (Enterprise Foundation Release).
+
+### Added
+- **API and Architecture Documentation**: Added `SYSTEM_ARCHITECTURE.md`, `API_SERVICES.md`, `DOMAIN_MODEL.md`, `FOLDER_STRUCTURE.md`, `PROJECT_LIFECYCLE.md`, `PROJECT_SETUP.md`, `PROJECT_ACTIVATION.md`, `CACHE_ARCHITECTURE.md`, `PRESENTATION_SERVICES.md`, `KPI_ENGINE.md`, `DATA_FLOW.md`, `VERSION_MATRIX.md`, and `DEVELOPER_GUIDE.md` under `docs/` and `docs/architecture/` to serve as a complete developer reference manual.
+- **Repository Invalidation Callbacks**: Implemented `ProjectRepository.onSaveCallback` and registered cache invalidation subscribers inside `ProjectLookupService` to ensure write operations automatically evict cached list payloads immediately.
+- **Bilingual Reusable Badges**: Created reusable React components `<ProjectWorkflowStateBadge />`, `<ProjectStatusBadge />`, and `<ProjectLifecycleBadge />` inside `src/components/ProjectStatusBadges.tsx` and centralized their styling maps into `StatusPresentationService.ts` and `LifecyclePresentationService.ts`.
+
+### Changed
+- **Centralized UI Presentation**: Refactored the Portfolio Grid list, Workspace Header, and Workspace Dashboard tabs to consume centralized presentation services and reusable badge components, eliminating duplicated style classes and inline translations.
+- **Dynamic Portfolio calculations**: Updated KPI cards to filter active workload (`status === ACTIVE || status === MOBILIZING`), compare dates with `NEAR_DUE_THRESHOLD_DAYS = 90` constant, and sum contract values dynamically using currency converters.
+- **Removed hardcoded progress placeholders**: Replaced the `42%` progress grid placeholder with a proper `—` / `Not Available` fallback backed by `FinancialsCalculator.calculateFinancialProgress()`.
+
+### Fixed
+- **State Inconsistencies after Activation**: Reopening the Setup Center for active projects now fallback-hydrates draft configurations dynamically from the aggregate root fields, ensuring setup screens display a 100% completed progress.
+
+## [1.4.2] - 2026-07-01
+
+### Fixed
+- **Project Setup hydration regression**: Resolved an issue where reopening the Project Setup panel for an activated project showed all steps as incomplete. Hydrated the `ProjectSetupDraft` dynamically from the active project's aggregate fields (`commercialSettings`, `calendarFoundation`, `projectOffice`) and attachments in the repository when `setupDraft` is missing. This ensures the wizard displays a 100% completed status (all sections valid and checked off) once the project has been activated.
+
+## [1.4.1] - 2026-07-01
+
+Development Sprint: Sprint 4A.1 — Stabilization & UX Refinement (fixes the Sprint 4A Phase 4A Live QA Audit's release blocker, `ROWAD_Sprint4A_QA_Report_2026-07-01.md`, and refines the setup/activation experience before Phase 4B). Architecture, business rules, and ADRs remained frozen; no new entities, repositories, or business modules — see `docs/adr/ADR-014-lifecycle-workflow-status-separation.md` for the one formalized decision.
+
+### Fixed (Critical — Release Blocker)
+- **BUG-001 — `ProjectSetupWizard` white screen**: Root cause was a genuine contract gap — `ProjectSetupDraft` never declared a `completedSteps` field, so `draft.completedSteps.includes(...)` threw `TypeError: Cannot read properties of undefined` on every render. Added `completedSteps: number[]` to the domain interface (`Project.ts`), initialized it in `ProjectSetupService.resumeDraft()` for new drafts, and added a normalization path for drafts already persisted before this field existed (e.g. `PRJ-2026-007`, 25%-complete at audit time) so existing in-progress setups don't crash either. Defensive `(draft.completedSteps || [])` guard added in the component as a second line of defense.
+- **BUG-003 — No error boundary around the Setup Wizard**: Added a reusable `src/components/ErrorBoundary.tsx` and wrapped `<ProjectSetupWizard>` in `ProjectWorkspace.tsx`. A future render-time crash in this component now degrades to a scoped, retryable fallback instead of a full white screen.
+
+### Fixed (Award Dialog)
+- **Award Wizard overlay/scroll/z-index issues**: Root cause was CSS, not z-index — the dialog's `position: fixed` container was nested inside `TenderDetailsDrawer`'s `animate-in slide-in-from-right` ancestor in `OngoingTenders.tsx`, and any ancestor `transform` (including the identity transform Tailwind's animate utilities apply) creates a new containing block that silently breaks `fixed` positioning. Added a reusable portal-based `src/components/ui/Modal.tsx` (body scroll lock, sticky header/footer, Escape-to-close) and refactored the Award Wizard to render through it, removing the dialog from the transformed DOM subtree entirely.
+- **Award attachments "disappearing"**: `project.awardAttachments` was populated at Award time but never read anywhere in the UI — a dead field. Award Wizard attachments (LOA, Signed Contract, Award Minutes, Clarifications — now user-selectable per file) are migrated into the project's canonical `ProjectAttachment` store via a new `TenderAwardService.transferAwardAttachments()`, tagged `sourceModule: 'Award Confirmation'`, and the transient `project.awardAttachments` carrier is cleared after transfer (single source of truth, no duplicate storage). Surfaced in a new "Award Documents" section at the top of the project's Documents tab (`DocumentsPanel.tsx`).
+
+### Changed (Project Setup Center — Part 2/5 redesign)
+- Replaced the 5-step linear/mandatory wizard ribbon in `ProjectSetupWizard.tsx` with a **Setup Center**: independent Commercial / Schedule / Project Office / Documents cards (each showing status, live progress %, and validation state), plus three non-blocking Advisory-tier placeholder cards (Calendars, Approvals, Notifications) so those future modules won't require rework. New drafts now land on the Setup Center overview (`currentStep: 0`) instead of being forced into Step 1.
+- The old Step 5 "Activation Readiness Review" is now an **always-visible Activation Readiness dashboard** at the bottom of the panel (per-section progress bars + overall %), not a page users have to navigate into — addresses the "replace the single percentage" requirement directly.
+- Confirmed and left unchanged (already correct): Project creation is never blocked by setup status — only the explicit "Activate Project" action is gated (`ProjectSetupService.activateProject` / `ProjectActivationPolicy`). Hard validation (Contract Value, Award Date, Currency, LOA Reference — `AwardConfirmationValidator`) blocks Award only; Activation validation (PM/SM/CA, dates, commercial settings, required docs — the four `*Handler.validate()` classes in `ProjectSetupService`) blocks Activation only; Advisory checks (e.g. "fewer than 5 Project Office members") are warnings only and never block.
+
+### Documentation
+- `docs/adr/ADR-014-lifecycle-workflow-status-separation.md`: formalizes the existing, already-correct separation of `lifecycleStage` (phase), `workflowState` (administrative gate), and `status` (operational execution) on the `Project` aggregate — no code change, backfills CLAUDE.md §15's outstanding ADR list.
+
+## [1.4.0] - 2026-07-01
+
+Development Sprint: Sprint 4 — Phase 4A (Project Setup Foundation). Implements dynamic organizational and commercial baselines, resumable setup drafts, and lifecycle-based locking rules.
+
+### Added (Phase 4A.1 — Domain Schema & Migrations)
+- **Project Office & Setup Draft Domain**: Defined `ProjectOffice`, `ProjectSetupDraft`, `ProjectTeamMember`, `ProjectDelegation`, `DistributionList`, `ApprovalStep`, and `ApprovalMatrixRule` inside [Project.ts](file:///d:/M.Gamal/Learn/Projects/Rowad-v1-main/src/domain/projects/Project.ts). Extended the main `Project` interface to own `projectOffice` and `setupDraft` schemas, and separate contractual baseline vs. planning forecast date fields.
+- **Database Schema Migration**: Implemented `Migration_002_ProjectSetupFoundation.ts` to backfill existing LocalStorage projects with default organizational structures (mapping legacy PM/Coordinator strings to dynamic arrays), `isSetupComplete: true` status flags for active projects, and contract duration defaults. Registered it in `MigrationRunner.ts`.
+
+### Added (Phase 4A.2 — ProjectSetupService)
+- **Project Setup Orchestrator**: Developed `ProjectSetupService` managing lazy draft instantiation, step validations, and state consolidation.
+- **Refactored Award Lifecycle**: Modified `TenderAwardService` to create projects in the `'Pending Project Setup'` stage and `'Inactive'` status, with empty personnel structures, delegating draft creation to first-time setup panel access.
+
+### Added (Phase 4A.3 — Project Setup Wizard UI)
+- **Multi-Step Setup Wizard**: Created `ProjectSetupWizard.tsx` with 5 steps: Commercial settings, Schedule timeline details, Project Team role mappings, Documents Readiness verification, and Activation Readiness review.
+- **Auto-Save & Resumable Drafts**: Setup wizard automatically persists changes to the project setup draft on step changes, resuming exactly where the user left off upon reload.
+- **Lifecycle-Based Permission Locks**: Integrated wizard rendering and locking logic inside [ProjectWorkspace.tsx](file:///d:/M.Gamal/Learn/Projects/Rowad-v1-main/src/features/projects/components/ProjectWorkspace.tsx). Overview, Documents, Meetings, and Project Setup remain unlocked, while commercial execution modules (IPCs, VOs, Claims, NOCs, Subcontracts) display a lock icon and show a warning prompt if accessed before project setup is complete.
+- **Activation Gate Gatekeeper**: The final Activation Readiness step validates dates, mandatory roles (PM/SM/CA), and 6 required compliance documents, enabling project activation only when the gate requirements are satisfied.
+
 ## [1.3.1] - 2026-06-30
 
 Development Sprint: Sprint 3.0.1 — Hotfix (completes remaining Sprint 3 scope + fixes Release Blockers found by the v1.3.0 RC1 Live QA Audit, `ROWAD-Enterprise-QA-Report-2026-06-29.md`). Architecture, business rules, and ADRs remained frozen; no new entities, repositories, or modules.

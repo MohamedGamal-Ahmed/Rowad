@@ -1,11 +1,11 @@
 import React from 'react';
-import { Briefcase, Building2, DollarSign } from 'lucide-react';
+import { Briefcase, Building2, DollarSign, Clock } from 'lucide-react';
 
 interface ProjectKpiBoardProps {
   kpis: {
     total: number;
     active: number;
-    preAward: number;
+    nearDue: number;
     value: number;
   };
   isAr: boolean;
@@ -40,12 +40,12 @@ export function ProjectKpiBoard({ kpis, isAr, formatCurrency }: ProjectKpiBoardP
       <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 rounded-2xl p-4 flex items-center justify-between shadow-sm">
         <div className="space-y-0.5">
           <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider font-mono">
-            {isAr ? 'عقود قبل الترسية' : 'PRE-AWARD BIDS'}
+            {isAr ? 'مشاريع قريبة الاستحقاق' : 'NEAR DUE PROJECTS'}
           </span>
-          <p className="text-2xl font-black text-amber-600">{kpis.preAward}</p>
+          <p className="text-2xl font-black text-amber-600">{kpis.nearDue}</p>
         </div>
         <div className="w-10 h-10 bg-amber-50 dark:bg-amber-950/20 rounded-xl flex items-center justify-center text-amber-500 shrink-0">
-          <Building2 className="w-5 h-5" />
+          <Clock className="w-5 h-5" />
         </div>
       </div>
       <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 rounded-2xl p-4 flex items-center justify-between shadow-sm">

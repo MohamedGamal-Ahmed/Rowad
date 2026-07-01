@@ -23,6 +23,11 @@ import { TenderAssignmentsTab } from './TenderAssignmentsTab';
 import { FinancialsCalculator } from '../../../../business-rules/FinancialsCalculator';
 import { TenderAwardService } from '../../../../services/TenderAwardService';
 import { WorkflowStatus } from '../../../../enums/WorkflowStatus';
+import { AwardConfirmationValidator } from '../../../../validators/AwardConfirmationValidator';
+import { ProjectAttachment } from '../../../../domain/projects/Project';
+import { Modal } from '../../../../components/ui/Modal';
+
+const AWARD_DOCUMENT_CATEGORIES = ['Letter of Award', 'Signed Contract', 'Award Minutes', 'Clarifications'] as const;
 
 interface TenderDetailsDrawerProps {
   selectedTender: Tender | null;
@@ -41,7 +46,7 @@ interface TenderDetailsDrawerProps {
   onAddDoc: (id: string) => void;
   onShowAlert: (msg: string) => void;
   onUpdateTender?: (updated: Tender) => void;
-  onAwardTender?: (tender: Tender) => void;
+  onAwardTender?: (tender: Tender, signedContractValue: number, contractCurrency: string, awardDate: string, loaReferenceNumber: string, awardAttachments?: ProjectAttachment[]) => void;
   onStatusTransition?: (tenderId: string, newStatus: WorkflowStatus) => void;
 }
 
@@ -81,11 +86,29 @@ export function TenderDetailsDrawer({
     );
   }
 
-  const parseValue = (valStr: string): number => {
-    return FinancialsCalculator.parseToNumber(valStr);
-  };
-
   const [showAwardWizard, setShowAwardWizard] = React.useState(false);
+  const [signedContractValue, setSignedContractValue] = React.useState<number>(0);
+  const [contractCurrency, setContractCurrency] = React.useState<string>('EGP');
+  const [awardDate, setAwardDate] = React.useState<string>('');
+  const [loaReferenceNumber, setLoaReferenceNumber] = React.useState<string>('');
+  const [awardFiles, setAwardFiles] = React.useState<{ name: string; size: string; category: string }[]>([]);
+
+  React.useEffect(() => {
+    if (showAwardWizard && selectedTender) {
+      const parsedVal = parseFloat(selectedTender.estimatedValue.replace(/,/g, '')) || 0;
+      setSignedContractValue(parsedVal);
+      setContractCurrency(selectedTender.currency || 'EGP');
+      setAwardDate(new Date().toISOString().substring(0, 10));
+      setLoaReferenceNumber('');
+      setAwardFiles([{ name: 'Letter_of_Award_LOA.pdf', size: '1.8 MB', category: 'Letter of Award' }]);
+    }
+  }, [showAwardWizard, selectedTender]);
+
+  const validationErrors = showAwardWizard
+    ? AwardConfirmationValidator.validate(signedContractValue, contractCurrency, awardDate, loaReferenceNumber)
+    : [];
+  const isAwardValid = validationErrors.length === 0;
+
   const isReadOnly = React.useMemo(
     () => new TenderAwardService().isTenderReadOnly(selectedTender),
     [selectedTender.awardedProjectId, selectedTender.awardStatus, selectedTender.projectStatus]
@@ -127,75 +150,197 @@ export function TenderDetailsDrawer({
         </button>
       </div>
 
-      {/* Award conversion confirmation wizard */}
-      {showAwardWizard && (
-        <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-slate-100 shadow-2xl max-w-lg w-full p-6 space-y-5 animate-in zoom-in-95 duration-150">
-            <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-4">
-              <div>
-                <span className="text-[10px] font-black uppercase text-brand-red tracking-wider">
-                  {isAr ? 'معالج الترسية' : 'Award Wizard'}
-                </span>
-                <h4 className="text-lg font-black text-brand-navy mt-1">
-                  {isAr ? 'تحويل المناقصة إلى مشروع' : 'Convert Tender to Project'}
-                </h4>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowAwardWizard(false)}
-                className="p-2 bg-slate-50 hover:bg-slate-100 text-slate-400 rounded-xl cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+      {/* Award conversion confirmation wizard — rendered via portal (Modal) so it is never
+          clipped/mispositioned by the animated/transformed drawer it lives inside. */}
+      <Modal
+        open={showAwardWizard}
+        onClose={() => setShowAwardWizard(false)}
+        eyebrow={isAr ? 'معالج الترسية' : 'Award Wizard'}
+        title={isAr ? 'تحويل المناقصة إلى مشروع' : 'Convert Tender to Project'}
+        footer={
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setShowAwardWizard(false)}
+              className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold cursor-pointer"
+            >
+              {isAr ? 'إلغاء' : 'Cancel'}
+            </button>
+            <button
+              type="button"
+              disabled={!isAwardValid}
+              onClick={() => {
+                setShowAwardWizard(false);
+                const mappedAttachments: ProjectAttachment[] = awardFiles.map((file, i) => ({
+                  id: `att-award-${selectedTender.id}-${Date.now()}-${i}`,
+                  projectId: `p-award-${selectedTender.id}`,
+                  entityType: 'Project',
+                  category: file.category,
+                  sourceModule: 'Award Confirmation',
+                  fileName: file.name,
+                  fileSize: file.size,
+                  uploadedBy: 'User (Award Confirmation)',
+                  uploadedDate: new Date().toISOString().split('T')[0]
+                }));
+                onAwardTender?.(selectedTender, signedContractValue, contractCurrency, awardDate, loaReferenceNumber, mappedAttachments);
+              }}
+              className={`px-5 py-2.5 rounded-xl text-xs font-black cursor-pointer transition-all ${
+                isAwardValid
+                  ? 'bg-brand-red text-white hover:bg-brand-red/90 shadow-sm'
+                  : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
+              }`}
+            >
+              {isAr ? 'تأكيد الترسية' : 'Confirm Award'}
+            </button>
+          </div>
+        }
+      >
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+            <span className="block text-[9px] font-black text-slate-400 uppercase">{isAr ? 'كود المشروع' : 'Project Code'}</span>
+            <strong className="text-brand-navy font-mono">{selectedTender.projectCode}</strong>
+          </div>
+          <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+            <span className="block text-[9px] font-black text-slate-400 uppercase">{isAr ? 'العميل' : 'Client'}</span>
+            <strong className="text-brand-navy">{isAr ? selectedTender.clientName.ar : selectedTender.clientName.en}</strong>
+          </div>
+        </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-              <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
-                <span className="block text-[9px] font-black text-slate-400 uppercase">{isAr ? 'كود المشروع' : 'Project Code'}</span>
-                <strong className="text-brand-navy font-mono">{selectedTender.projectCode}</strong>
-              </div>
-              <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
-                <span className="block text-[9px] font-black text-slate-400 uppercase">{isAr ? 'قيمة العقد' : 'Contract Value'}</span>
-                <strong className="text-brand-navy">{selectedTender.estimatedValue}</strong>
-              </div>
-              <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
-                <span className="block text-[9px] font-black text-slate-400 uppercase">{isAr ? 'العميل' : 'Client'}</span>
-                <strong className="text-brand-navy">{isAr ? selectedTender.clientName.ar : selectedTender.clientName.en}</strong>
-              </div>
-              <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
-                <span className="block text-[9px] font-black text-slate-400 uppercase">{isAr ? 'الاستشاري' : 'Consultant'}</span>
-                <strong className="text-brand-navy">{selectedTender.consultant ? (isAr ? selectedTender.consultant.ar : selectedTender.consultant.en) : 'N/A'}</strong>
-              </div>
-            </div>
+        {/* Editable Contract Info */}
+        <div className="space-y-3 border-t pt-3">
+          <h5 className="font-extrabold text-brand-navy dark:text-slate-100 text-[11px] uppercase">
+            {isAr ? 'المعلومات التعاقدية للترسية' : 'Contract Award Information'}
+          </h5>
 
-            <div className="bg-amber-50 border border-amber-100 rounded-2xl p-3 text-[11px] font-semibold text-amber-800 leading-relaxed">
-              {isAr
-                ? 'بعد التأكيد سيتم إنشاء سجل مشروع مرتبط، نقل مستندات المناقصة كسجل مرفقات، وتصبح المناقصة للقراءة فقط.'
-                : 'Confirming creates the linked Project record, transfers tender documents as attachments, and locks the Tender as read-only.'}
-            </div>
+          <div className="space-y-1">
+            <label className="block text-[10px] font-bold text-slate-400 uppercase">
+              {isAr ? 'القيمة المتعاقد عليها (Signed Contract Value) *' : 'Signed Contract Value *'}
+            </label>
+            <input
+              type="number"
+              value={signedContractValue || ''}
+              onChange={(e) => setSignedContractValue(parseFloat(e.target.value) || 0)}
+              className="w-full p-2.5 border rounded-xl bg-white text-slate-800 focus:outline-none focus:border-brand-red border-slate-200"
+              placeholder="e.g. 1500000"
+            />
+          </div>
 
-            <div className="flex justify-end gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => setShowAwardWizard(false)}
-                className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold cursor-pointer"
-              >
-                {isAr ? 'إلغاء' : 'Cancel'}
-              </button>
+          <div className="space-y-1">
+            <label className="block text-[10px] font-bold text-slate-400 uppercase">
+              {isAr ? 'عملة العقد *' : 'Contract Currency *'}
+            </label>
+            <select
+              value={contractCurrency}
+              onChange={(e) => setContractCurrency(e.target.value)}
+              className="w-full p-2.5 border rounded-xl bg-white text-slate-800 focus:outline-none focus:border-brand-red border-slate-200"
+            >
+              <option value="AED">AED - UAE Dirham</option>
+              <option value="SAR">SAR - Saudi Riyal</option>
+              <option value="EGP">EGP - Egyptian Pound</option>
+              <option value="USD">USD - US Dollar</option>
+            </select>
+          </div>
+
+          <div className="space-y-1">
+            <label className="block text-[10px] font-bold text-slate-400 uppercase">
+              {isAr ? 'تاريخ الترسية *' : 'Award Date *'}
+            </label>
+            <input
+              type="date"
+              value={awardDate}
+              onChange={(e) => setAwardDate(e.target.value)}
+              className="w-full p-2.5 border rounded-xl bg-white text-slate-800 focus:outline-none border-slate-200"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="block text-[10px] font-bold text-slate-400 uppercase">
+              {isAr ? 'رقم خطاب الترسية LOA Reference *' : 'Award / LOA Reference Number *'}
+            </label>
+            <input
+              type="text"
+              value={loaReferenceNumber}
+              onChange={(e) => setLoaReferenceNumber(e.target.value)}
+              className="w-full p-2.5 border rounded-xl bg-white text-slate-800 focus:outline-none focus:border-brand-red border-slate-200"
+              placeholder="e.g. LOA-2026-004"
+            />
+          </div>
+
+          {/* Multiple Award Attachments, each with a Document Control category so they
+              migrate cleanly into the project's Award Documents record on confirmation. */}
+          <div className="space-y-2 border-t pt-3">
+            <div className="flex justify-between items-center">
+              <label className="block text-[10px] font-bold text-slate-400 uppercase font-sans">
+                {isAr ? 'مرفقات قرار الترسية *' : 'Award Attachments *'}
+              </label>
               <button
                 type="button"
                 onClick={() => {
-                  setShowAwardWizard(false);
-                  onAwardTender?.(selectedTender);
+                  const count = awardFiles.length + 1;
+                  setAwardFiles([...awardFiles, { name: `Award_Supporting_Doc_${count}.pdf`, size: '2.1 MB', category: 'Clarifications' }]);
                 }}
-                className="px-5 py-2.5 bg-brand-red hover:bg-brand-red/90 text-white rounded-xl text-xs font-black cursor-pointer"
+                className="text-[10px] font-bold text-brand-red hover:underline cursor-pointer"
               >
-                {isAr ? 'تأكيد الترسية' : 'Confirm Award'}
+                + {isAr ? 'إضافة مستند' : 'Add Document'}
               </button>
             </div>
+            {awardFiles.length === 0 ? (
+              <div className="text-[10px] text-slate-400 text-center py-2 bg-slate-50 border border-dashed rounded-xl font-sans">
+                {isAr ? 'لا توجد مستندات مرفقة' : 'No documents attached'}
+              </div>
+            ) : (
+              <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-1">
+                {awardFiles.map((file, idx) => (
+                  <div key={idx} className="flex justify-between items-center gap-2 p-2 bg-slate-50 border border-slate-100 rounded-xl">
+                    <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                      <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span className="truncate text-slate-700 text-[10px] font-semibold font-sans">{file.name}</span>
+                      <span className="text-slate-450 text-[9px] font-mono shrink-0">({file.size})</span>
+                    </div>
+                    <select
+                      value={file.category}
+                      onChange={(e) => {
+                        const updated = [...awardFiles];
+                        updated[idx] = { ...updated[idx], category: e.target.value };
+                        setAwardFiles(updated);
+                      }}
+                      className="text-[9px] font-bold border rounded-lg bg-white px-1.5 py-1 shrink-0"
+                    >
+                      {AWARD_DOCUMENT_CATEGORIES.map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => setAwardFiles(awardFiles.filter((_, i) => i !== idx))}
+                      className="p-1 hover:bg-slate-200 text-slate-400 hover:text-brand-red rounded cursor-pointer shrink-0"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
-      )}
+
+        {validationErrors.length > 0 && (
+          <div className="p-2.5 bg-rose-50 border border-rose-100 rounded-xl text-rose-700 text-[10px] space-y-0.5">
+            {validationErrors.map((err, i) => (
+              <div key={i} className="flex items-center gap-1.5 font-bold">
+                <span className="w-1.5 h-1.5 bg-rose-500 rounded-full shrink-0" />
+                <span>{err}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="bg-amber-50 border border-amber-100 rounded-2xl p-3 text-[11px] font-semibold text-amber-800 leading-relaxed">
+          {isAr
+            ? 'تأكيد الترسية سينشئ مشروعاً مسوداً ويمنع التعديل على المناقصة.'
+            : 'Confirming award will create the setup project record and lock this tender.'}
+        </div>
+      </Modal>
 
       {/* Sub-Header Tabs Row - horizontal scrolling */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-2 border-b border-gray-100 premium-scrollbar -mx-2 px-2">

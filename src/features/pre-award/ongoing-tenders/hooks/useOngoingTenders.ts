@@ -343,11 +343,23 @@ export function useOngoingTenders({
     });
   };
 
-  const handleAwardTender = async (tender: Tender) => {
+  const handleAwardTender = async (
+    tender: Tender,
+    signedContractValue: number,
+    contractCurrency: string,
+    awardDate: string,
+    loaReferenceNumber: string,
+    awardAttachments?: any[]
+  ) => {
     const awardService = new TenderAwardService();
     const result = await awardService.awardLegacyTender(
       tender,
-      isAr ? 'أحمد مصطفى' : 'Ahmed Mostafa'
+      isAr ? 'أحمد مصطفى' : 'Ahmed Mostafa',
+      signedContractValue,
+      contractCurrency,
+      awardDate,
+      loaReferenceNumber,
+      awardAttachments
     );
 
     if (!result.success || !result.tender) {
