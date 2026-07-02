@@ -1,7 +1,7 @@
 import React from 'react';
-import { 
-  BarChart2, Compass, Briefcase, Folder, Settings, 
-  ChevronLeft, ChevronRight, Calendar, Building2
+import {
+  BarChart2, Compass, Briefcase, Folder, Settings,
+  ChevronLeft, ChevronRight, Calendar, Building2, Database
 } from 'lucide-react';
 import { BiText } from './BiText';
 
@@ -53,7 +53,22 @@ export function Sidebar({
       items: [
         { icon: Settings, label: { en: 'Settings & Security', ar: 'إعدادات النظام والأمان' }, id: 'settings' }
       ]
-    }
+    },
+    // Sprint 5.1 Phase 5 — temporary developer/QA proof surface for the BI
+    // layer. Never a business feature (CTO ruling, Sprint 5.1 close-out) —
+    // gated behind Vite's built-in `import.meta.env.DEV` so it is compiled
+    // out of every production build entirely, not just hidden. Remove this
+    // group and its App.tsx route once the BI layer gains a real consumer.
+    ...(import.meta.env.DEV
+      ? [
+          {
+            title: { en: 'DEV (TEMPORARY)', ar: 'أدوات المطورين (مؤقت)' },
+            items: [
+              { icon: Database, label: { en: 'BI Dataset Viewer', ar: 'عارض بيانات BI' }, id: 'dev-bi-portfolio' }
+            ]
+          }
+        ]
+      : [])
   ];
 
   return (

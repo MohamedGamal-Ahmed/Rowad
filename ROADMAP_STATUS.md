@@ -9,12 +9,38 @@
 
 | Field | Value |
 |-------|-------|
-| **Current Product Version** | `v1.5.0` |
-| **Current Development Sprint** | Sprint 5 — Execution Commercial Modules & Control (starting) |
-| **Last Completed Product Version** | `v1.5.0` |
-| **Last Completed Development Sprint** | Sprint 4A — Project Setup & Activation Foundation & Stabilization |
-| **Latest Git Tag** | `v1.5.0` |
-| **Last Updated** | 2026-07-01 |
+| **Current Product Version** | `v1.5.0` (target — **tag not yet created**, see Version Reconciliation Note below) |
+| **Current Development Sprint** | Sprint 5.2 — Dataset Expansion (Pre-Award Dataset, Commercial Dataset, Executive Portfolio Report) — starting. Item 4 (Executive Portfolio Report) is 🔴 blocked on Sprint 5.1 formal Exit (Build Passed + Git Tag — see Version Reconciliation Note). Item 4 itself will ship as `v1.6.0`. |
+| **Last Completed Product Version** | `v1.4.0` (real, in git) — Sprint 4A, Enterprise Foundation |
+| **Last Completed Development Sprint** | Sprint 5.1 — BI Foundation Proof (ExecutivePortfolioDataset) — scope/QA complete, tag pending (this is the sprint becoming `v1.5.0`) |
+| **Latest Git Tag (real, in git)** | `v1.4.0` |
+| **Last Updated** | 2026-07-02 — versioning correction: no retroactive tag is created for `v1.4.0`'s commit. `v1.4.0` stands as-is as the real, sole tag covering Sprint 4/4A/4A.1/4A.4's accumulated work. Sprint 5.1 becomes the next real tag, `v1.5.0`. The following release (Executive Portfolio Report, Sprint 5.2 Item 4) becomes `v1.6.0`. |
+
+---
+
+## Version Reconciliation Note (Sprint 5.1 close-out)
+
+Git's real, currently-existing tag is `v1.4.0` (commit `7ea5cdd`, "complete Sprint 4A Enterprise Foundation release"). `CHANGELOG.md` had, at various points, described increments on top of that same commit's content (Sprint 4A.1/4A.4 work) as `v1.4.1`, `v1.4.2`, and `v1.5.0` — none of which were ever actually tagged in git; all of that work shares the single real `v1.4.0` tag.
+
+**Corrected decision (2026-07-02, supersedes the earlier retroactive-tag plan):** No retroactive tag is created. `v1.4.0` remains exactly what it is in git today — the sole tag for all Sprint 4/4A/4A.1/4A.4 work. `CHANGELOG.md`'s `[1.4.1]`/`[1.4.2]`/old-`[1.5.0]` entries are relabeled as folded into `v1.4.0` (no separate tags ever existed for them). Sprint 5.1's own commit becomes the next real tag, `v1.5.0`. The Executive Portfolio Report (Sprint 5.2 Item 4, the next release after this) becomes `v1.6.0`. Versioning for Sprint 5.2 Items 1–3 (Pre-Award/Commercial Datasets) and Sprint 5 (RBAC) onward is not yet decided — do not assume the previously-listed `v1.7.0`/`v2.x` placeholders elsewhere in this file are final; treat them as provisional until each Sprint starts.
+
+**This sandbox cannot create git tags or commit** (`.git/index.lock` is a stale lock this environment's FUSE mount cannot delete/recreate — confirmed, not just asserted). Run locally to close this out:
+
+```
+git add src/bi src/views/dev src/tests/run-bi-portfolio-validation.ts src/vite-env.d.ts src/App.tsx src/components/Sidebar.tsx docs/bi docs/adr/ADR-018-bi-foundation-dataset-layer-timing.md docs/technical-debt/TD-2026-07-typescript-debt.md CHANGELOG.md ROADMAP_STATUS.md CLAUDE.md Sprint.md docs/releases/VERSION_MATRIX.md
+
+npm run lint    # Known pre-existing TypeScript Technical Debt (TD-001..TD-004). Sprint 5.1 introduces no new TypeScript errors.
+npm run build   # must be clean
+
+git commit -m "feat(bi): Sprint 5.1 — ExecutivePortfolioDataset proof (validator, dev viewer, docs) + TD backlog for pre-existing TS debt (TD-001..004)"
+git tag -a v1.5.0 -m "Sprint 5.1: BI Foundation Proof (ExecutivePortfolioDataset)"
+git push origin main
+git push origin v1.5.0
+```
+
+Order matters: the tag must be created *after* the commit (an annotated `git tag` with no ref argument points at current `HEAD` — tagging before committing would incorrectly point `v1.5.0` at `v1.4.0`'s commit).
+
+Until this is run, treat `v1.5.0`/`v1.6.0` everywhere in this file and `CHANGELOG.md` as **targets**, not facts.
 
 ---
 
@@ -28,18 +54,41 @@
 | Sprint 3 | Commercial Modules (IPC + VO + NOC + Subcontracts + SPR completion) | ✅ Completed | 100% | `v1.3.0` |
 | Sprint 3E | Commercial Domain Consolidation | ✅ Completed | 100% | `v1.3.0` |
 | Sprint 3.0.1 | Hotfix (Sprint 3 RC1 Release Blockers) | ✅ Completed | 100% | `v1.3.1` |
-| Sprint 4 | Enterprise System Settings & Policies | ✅ Completed | 100% | `v1.5.0` |
-| Sprint 5 | Execution Commercial Modules & Control (IPC, VO, Claims, NOC, Subcontracts, Progress Tracking, EVM) | 🟡 In Progress | 0% | _pending v2.0.0_ |
-| Sprint 6 | Security & RBAC Foundation | ⏳ Planned | 0% | _pending v2.1.0_ |
-| Sprint 7 | Enterprise UX Polish | ⏳ Planned | 0% | _pending v2.2.0_ |
-| Sprint 8 | Backend Preparation (triggers Architecture Freeze) | ⏳ Planned | 0% | _pending v2.3.0_ |
-| Sprint 9 | Backend Core | ⏳ Planned | 0% | _pending v3.0.0_ |
-| Sprint 10 | Production Infrastructure & File Integrations | ⏳ Planned | 0% | _pending v3.1.0_ |
-| Sprint 11 | Data Migration (Pilot → Full) | ⏳ Planned | 0% | _pending v3.2.0_ |
-| Sprint 12 | Go Live (with Rollback Plan) | ⏳ Planned | 0% | _pending v4.0.0_ |
-| Phase 2 | AI → OCR → Notifications → Workflow → Power BI → Mobile → M365 | ⏳ Future | 0% | — |
+| Sprint 4 | Enterprise System Settings & Policies | ✅ Completed* | 100% | `v1.4.0` |
+| Sprint 4A | Project Setup & Activation Foundation & Stabilization | ✅ Completed | 100% | `v1.4.0` (real — no separate/retroactive tag; folds in 4A.1/4A.4 work per 2026-07-02 versioning correction) |
+| Sprint 5.0 | BI Foundation (Architecture & Contracts Freeze) | ✅ Completed | 100% | bundled into `v1.5.0` (target — Sprint 5.1's tag) |
+| Sprint 5.1 | BI Foundation Proof (ExecutivePortfolioDataset) | ✅ Closing — 🔴 Build + Tag Pending | 100% scope / Exit Criteria 8/9 | `v1.5.0` (target). **2026-07-02 ruling:** Exit Criterion #2 (Type Check) is closed with 9 pre-existing `tsc` errors formally logged as Technical Debt — TD-001..TD-004 (see § below and `docs/technical-debt/TD-2026-07-typescript-debt.md`) rather than fixed here — confirmed unrelated to `src/bi/**` (all predate Sprint 5.1, several trace to Sprint 2 `v1.2.0`). Sprint 5.1 introduces no new TypeScript errors. Not silently waived: tracked, prioritized, owned, deferred to a dedicated Maintenance Sprint. Build Passed + Git Tag Created still require the local commands in the Version Reconciliation Note (this sandbox cannot write `.git/index.lock` — confirmed blocked, see below), using the **strictly scoped commit** (BI files only — no `scratch/`, no CRLF-only files, no unrelated Tender/Project/Claims module changes). |
+| Sprint 5.2 | Dataset Expansion (Pre-Award Dataset, Commercial Dataset, Executive Portfolio Report) | 🟡 In Progress — Item 4 🔴 blocked on Sprint 5.1 Exit | 0% | Item 4 (Executive Portfolio Report) → `v1.6.0`. Items 1–3 (Pre-Award/Commercial Datasets) versioning not yet decided. |
+| Sprint 5 | Security & RBAC Foundation | ⏳ Planned | 0% | _pending — not yet decided, see Version Reconciliation Note_ |
+| Sprint 6 | Enterprise UX Polish | ⏳ Planned | 0% | _pending — not yet decided_ |
+| Sprint 7 | Backend Preparation (triggers Architecture Freeze) | ⏳ Planned | 0% | _pending — not yet decided_ |
+| Sprint 8 | Backend Core | ⏳ Planned | 0% | _pending — not yet decided_ |
+| Sprint 9 | Production Infrastructure & File Integrations | ⏳ Planned | 0% | _pending — not yet decided_ |
+| Sprint 10 | Data Migration (Pilot → Full) | ⏳ Planned | 0% | _pending — not yet decided_ |
+| Sprint 11 | Go Live (with Rollback Plan) | ⏳ Planned | 0% | _pending — not yet decided_ |
+| Sprint 12 | Hypercare (first 30 days post Go Live) | ⏳ Planned | 0% | _pending — not yet decided_ |
+| Phase 2 | AI → OCR → Notifications → Workflow → Power BI/Reporting (export/consumer layer) → Mobile → M365 | ⏳ Future | 0% | — |
+
+\* Sprint 4's original scope (Master Data CRUD FK-linking — QA #8/#28/#29/#2) has not been re-verified as closed during this alignment pass; flagged in `Sprint.md`'s Sprint 4A section and OD-005 below.
+
+**Numbering note:** Sprint 5.0/5.1/5.2 sit *before* Sprint 5 (RBAC) in execution order — they're intercalary sprints (same pattern as Sprint 3E / Sprint 3.0.1), not a renumbering of Sprint 5 onward. This corrects a prior version of this table that had inserted an undocumented "Sprint 5 — Execution Commercial Modules & Control" and silently shifted Sprint 5–12 down by one (dropping the Hypercare row entirely in the process) without updating `Sprint.md` to match. See OD-004.
 
 Legend: ✅ Completed · 🟡 In Progress · ⏳ Planned · 🔴 Blocked
+
+---
+
+## Technical Debt Backlog
+
+Opened 2026-07-02 during Sprint 5.1 close-out. Full detail (root cause, impact, priority, proposed fix, estimated scope, module owner) lives in `docs/technical-debt/TD-2026-07-typescript-debt.md`. None of these are fixed as part of Sprint 5.1 or Sprint 5.2 — they are unrelated to BI development and are explicitly deferred to a dedicated **Maintenance Sprint** (repository-wide TypeScript debt elimination, independent of BI work).
+
+| ID | Item | Priority | Module Owner | Status |
+|----|------|----------|---------------|--------|
+| TD-001 | `Tender` / `LegacyTender` type divergence (`workflowStatus: string` vs `WorkflowStatus` enum) | P2 | Pre-Award / Ongoing Tenders | 🔴 Open |
+| TD-002 | `AddProject.tsx` still uses local 4-value status union + unconstrained `contractType` string instead of domain `ProjectStatus`/`ContractType` enums (7/8 values) | P1 | Projects / Project Setup | 🔴 Open |
+| TD-003 | `ClaimsPanel.tsx` status `<select>` passes raw DOM `string` into `ClaimStatus`-typed state without a cast/guard | P3 | Projects / Claims | 🔴 Open |
+| TD-004 | `scratch/` + `src/tests/` diagnostic scripts share the app's `tsconfig.json` with no `include`/`exclude` boundary, so Node-harness drift gates every future Sprint's Type Check Exit Criterion | P1 (structural) | Tooling / DX | 🔴 Open |
+
+**Why these weren't fixed under Sprint 5.1:** all 9 underlying `tsc --noEmit` errors were verified (via `git diff --ignore-all-space` against `HEAD`) to predate Sprint 5.1 and be unrelated to `src/bi/**` — several trace to Sprint 2 (`v1.2.0`, 2026-06-30). Fixing them here would have violated both "Stay inside Sprint scope" and "One Business Module Per Iteration" (CLAUDE.md §17/§14) by touching Tenders, Projects, and Claims in a BI-scoped Sprint. Logged instead, per explicit CTO ruling this session.
 
 ---
 
@@ -113,9 +162,25 @@ Legend: ✅ Completed · 🟡 In Progress · ⏳ Planned · 🔴 Blocked
 | 12 | Phase 4A.1 Verification (Type Check & build check) | Exit | ✅ Completed | Verification passed successfully: `npm run lint` type-checks cleanly (aside from pre-existing base errors), and `npm run build` succeeds. |
 | 13 | Project Setup Hydration Regression | Setup Hydration | ✅ Completed | Hydrated the setup draft from active aggregate fields when reopening Setup after activation. |
 
+## Sprint 5.1 — BI Foundation Proof (ExecutivePortfolio Dataset) Work Breakdown
+
+> Reflected in the Snapshot/Sprint Status tables above as of the roadmap-alignment pass — see OD-004 (resolved).
+
+| # | Task / Requirement | Bucket | Status | Notes |
+|---|--------------------|--------|--------|-------|
+| 1 | Phase 1-4 — Builder / Service / Calculators / Filter Engine | BI Layer | ✅ Verified — already implemented | Found fully implemented (not contract-only) prior to this sprint, from the Sprint 5.0 "BI Foundation" work. Confirmed correct against real seed data; no code changes made. |
+| 2 | Phase 5 — Developer Dataset Viewer | BI Layer / UI | ✅ Completed | `src/views/dev/BIPortfolioDatasetViewer.tsx`, temporary, behind a "DEV (TEMPORARY)" Sidebar group — gated by `import.meta.env.DEV` (CTO ruling, close-out) so it's excluded from production builds entirely, not just hidden from nav. Required adding `src/vite-env.d.ts` (was missing from the project). |
+| 3 | Phase 6 — Dataset Validation | BI Layer | ✅ Completed | `src/bi/validation/PortfolioDatasetValidator.ts` — 7 independent checks, all passing against real seed data (3 projects → 3 rows). |
+| 4 | Phase 7 — Documentation | Documentation | ✅ Completed | `docs/bi/` — Specification, Field Dictionary, Data Lineage, Data Mapping Matrix, Validation Report. |
+| 5 | Type Check | Exit | ✅ Completed | Known pre-existing TypeScript Technical Debt (TD-001..TD-004, see `docs/technical-debt/TD-2026-07-typescript-debt.md`). Sprint 5.1 introduces no new TypeScript errors. See CHANGELOG for the sandbox caveat on how this was verified. |
+| 6 | Build Check | Exit | 🔴 Not verified | `npm run build` could not run in the verification sandbox (Windows-only native `esbuild`/`rollup` binaries in `node_modules`, no Linux counterpart). Needs to be run locally before this Sprint can be marked exited. |
+| 7 | Git Commit / Tag | Exit | 🔴 Not done | Sandbox could not acquire `.git/index.lock` (permission denied) — no commit was attempted from this session. `src/bi/` itself was still untracked in git before this sprint began. Needs a real commit + tag decision (see OD-004) from a normal dev environment. |
+
 ## Current Blockers
 
-* None.
+* **Sprint 5.1 build verification** — `npm run build` unverified in this environment; run locally to close Sprint Exit Criterion #3 (Build Passed) for the BI Foundation Proof work above.
+* **Sprint 5.1 / repository-maintenance git operations** — see "Version Reconciliation Note" above for the exact commands (scoped commit of Sprint 5.1's BI files only, then tag `v1.5.0`). None of this could run from the sandbox.
+* **~24 unrelated files already modified-but-uncommitted** in the working tree before this session started (MasterData, Tender, ClaimsPanel, IPCsPanel, NOCsPanel, SubcontractorsPanel, VOsPanel, several repositories, etc.) — not touched by this session, but worth a deliberate review before any of it gets swept into a commit, since CLAUDE.md §14's "One Business Module Per Iteration" rule assumes each module is committed before the next begins, and this much uncommitted cross-module state means that rule has not been followed in practice recently.
 
 ---
 
@@ -126,6 +191,8 @@ Legend: ✅ Completed · 🟡 In Progress · ⏳ Planned · 🔴 Blocked
 | OD-001 | Document Control sub-modules (#71 — Transmittals Hub, Incoming/Outgoing Letters, Revision History, Makers Approval) currently placed in Phase 2. Does the business need them earlier? If yes, candidate Sprint between 3 and 4. | New features, not bug fixes — Phase 2 by default. | CTO |
 | OD-002 | Tender → Project (Finding #25) Award workflow scope — implemented as an in-drawer Award confirmation wizard backed by `TenderAwardService`; broader Claims and Tender Financial completion remain separate Sprint 2 items. | Resolved. Claims lifecycle (F#49) and Tender Financial Step (F#11) completed in subsequent Sprint 2 work. | CTO |
 | OD-003 | Backfill foundational ADRs (ADR-001 to ADR-008 listed in CLAUDE.md ch. 15) — schedule a dedicated documentation slot or backfill incrementally as each topic is touched? | Currently captured informally in CLAUDE.md + PROJECT_BOOK.md. | CTO |
+| OD-004 | **Sprint numbering conflict** (originally flagged after Sprint 5.1). This file's Snapshot named the active Sprint "Sprint 5 — Execution Commercial Modules & Control" while `CLAUDE.md`/`Sprint.md` named a different Sprint 5 ("Security & RBAC Foundation"), and neither mentioned the BI/Executive-Portfolio work already built in `src/bi/`. | **Resolved.** CTO ruling: (a) the "Sprint 5 — Execution Commercial Modules & Control" entry was a documentation error — removed, no such Sprint exists; (b) BI/Executive Portfolio is a real intercalary track — `Sprint.md` now has Sprint 5.0/5.1/5.2 inserted before Sprint 5 (RBAC), same convention as Sprint 3E/3.0.1, formalized in `ADR-018`; (c) `Sprint.md` is authoritative for scope, this file for live status, `CLAUDE.md` §11 now points to both instead of hardcoding "Sprint 1" as current. | CTO |
+| OD-005 | Sprint 4's original scope (Master Data CRUD, FK-linking Coordinator/Client/Consultant to MasterData — QA #8/#28/#29/#2) was marked "✅ Completed" in this file's Sprint Status table, but that completion has not been re-verified in this alignment pass — the work that's demonstrably real and tagged is Sprint 4A (Project Setup & Activation), a *different* body of work that landed under the same "Sprint 4" label without either being distinguished at the time. Confirm before Sprint 5 (RBAC) begins — RBAC's Ownership Model assumes real Employee/Department master records, not free text. | Open. | CTO |
 
 ---
 

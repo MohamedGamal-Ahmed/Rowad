@@ -461,6 +461,90 @@ SYSTEM_ADMIN permission only. No operational users can access this module. No bu
 
 Operational users only need Business Rules **after** the Modules are complete. Building Enterprise Settings before the Commercial Modules would force premature decisions about what to configure.
 
+# Sprint 4A — Project Setup & Activation Foundation & Stabilization (Status: Completed)
+
+Inserted after Sprint 4, before Sprint 5, using the same intercalary convention as Sprint 3E / Sprint 3.0.1. Real, tagged, completed work that predates this document reflecting it — added here as part of the Sprint 5.1 roadmap-alignment pass (see `ROADMAP_STATUS.md` OD-004).
+
+## Scope (executed across 4A.1–4A.4)
+
+- **4A.1** — `ProjectOffice` & Setup Draft domain model (`Project.ts`, `Migration_002`).
+- **4A.2** — `ProjectSetupService` implementation (lazy draft instantiation, step validations, state consolidation; `TenderAwardService` refactor).
+- **4A.3** — Project Setup Wizard UI (5-step, auto-save, resumable drafts, Activation Gate checks) → later redesigned into a modular Setup Center (independent Commercial/Schedule/Office/Documents cards + 3 non-blocking Advisory placeholder cards).
+- **4A.4** — Post-Activation Consistency & Portfolio Synchronization: `ProjectRepository.onSaveCallback` cache-invalidation architecture (`ADR-015`), centralized presentation mappers + reusable status/workflow/lifecycle badges (`ADR-016`), dynamic KPI/contract-value calculations, removal of hardcoded progress placeholders.
+- Release-blocker fixes from the Sprint 4A Live QA Audit (`ROWAD_Sprint4A_QA_Report_2026-07-01.md`): `ProjectSetupWizard` white screen, missing ErrorBoundary, Award Dialog overlay/z-index, Award Attachments not surfaced, Setup Draft hydration after activation (`ADR-017`).
+- `ADR-014` — formalized the (pre-existing, non-overlapping) separation of `lifecycleStage` / `workflowState` / `status` on `Project`.
+
+## Deliverables
+
+`ADR-014`, `ADR-015`, `ADR-016`, `ADR-017`. Full detail in `CHANGELOG.md` (`[1.4.1]`, `[1.4.2]`, `[1.5.0]` entries) and `ROADMAP_STATUS.md`.
+
+## Note on original Sprint 4 scope
+
+Sprint 4's originally-planned scope (Master Data CRUD, Business Rules configuration, Workflow/System Policies) and Sprint 4A's scope (Project Setup & Activation) are different bodies of work that both landed under the "Sprint 4" umbrella without this document being updated at the time. Whether every original Sprint 4 QA finding (`#8`, `#28`, `#29`, `#2` — Master Data FK linking) is actually closed has **not** been re-verified as part of this Sprint 5.1 roadmap-alignment pass — flagged as a Future Sprint Recommendation to confirm before Sprint 5 (RBAC) begins, since RBAC's Ownership Model assumes real Employee/Department master records.
+
+---
+
+# Sprint 5.0 — BI Foundation (Architecture & Contracts Freeze) (Status: Completed)
+
+Inserted before Sprint 5 (Security & RBAC Foundation), using the same intercalary convention as Sprint 3E / Sprint 3.0.1. See `docs/adr/ADR-018-bi-foundation-dataset-layer-timing.md` for why this exists ahead of Sprint 5 and ahead of the Phase 2 "Power BI / Reporting & Analytics" item this document originally deferred BI work to — short version: this sprint and 5.1 prove the **dataset/semantic layer only** (on-demand, LocalStorage-scale, reuses existing Services/Calculators); the **export/consumer layer** (Excel, REST, Power BI, `DatasetRegistry` wiring) remains in Phase 2 exactly as originally planned.
+
+## Scope
+
+Established `src/bi/` — folder structure, Dataset contracts (`IBusinessDataset`, `DatasetMetadata`, `BusinessDatasetType`), Builder contracts, Service contracts, Calculator contracts, Export contracts (`IExporter` + 4 throwing-stub exporters), Dataset Registry contract (throwing-stub), Metadata contracts. `ExecutivePortfolioDataset`'s DTO, builder, 4 calculators, service, and filter engine were implemented with real logic during this sprint (not left as contracts) — see `docs/bi/EXECUTIVE_PORTFOLIO_FIELD_DICTIONARY.md`.
+
+## Out of Scope
+
+`DatasetRegistry` registration logic, any exporter implementation, any second dataset, any UI consumer.
+
+## Deliverables
+
+`src/bi/` (frozen contracts + real `ExecutivePortfolioDataset` implementation).
+
+---
+
+# Sprint 5.1 — BI Foundation Proof (ExecutivePortfolioDataset) (Status: Completed)
+
+Proved the Sprint 5.0 architecture end-to-end against real Operational Layer data. No new infrastructure — explicit instruction was "Do not add more infrastructure or framework code," "No placeholders. No TODOs. No mock values."
+
+## Scope
+
+1. Confirmed `ExecutivePortfolioBuilder`, `ExecutivePortfolioService`, `PortfolioValueCalculator` (+ Progress/Health/Risk), and `PortfolioFilterEngine` were already correctly implemented (Sprint 5.0) — no code changes needed.
+2. Built `src/bi/validation/PortfolioDatasetValidator.ts` — 7 independent checks (row-count parity, no duplicate rows/codes, no missing/untraceable IDs, monetary normalization cross-checked against `FinancialsCalculator`, setup-readiness parity against `ProjectSetupService.evaluatePolicy()`, lifecycle/workflow/status parity against `Project`).
+3. Ran a real proof script (`src/tests/run-bi-portfolio-validation.ts`) against real seed data — result: 3 projects → 3 rows, 7/7 checks passed.
+4. Built a temporary Developer Dataset Viewer (`src/views/dev/BIPortfolioDatasetViewer.tsx`) behind a "DEV (TEMPORARY)" Sidebar group — never a business feature. Close-out: gated behind `import.meta.env.DEV` so it compiles out of production builds entirely (added `src/vite-env.d.ts`, previously missing from the project).
+5. Documentation: `docs/bi/EXECUTIVE_PORTFOLIO_DATASET_SPECIFICATION.md`, `_FIELD_DICTIONARY.md`, `_DATA_LINEAGE.md`, `_DATA_MAPPING_MATRIX.md`, `_VALIDATION_REPORT.md`.
+
+## Out of Scope (explicitly stopped at)
+
+Excel export, Power BI integration, REST API, any Executive Dashboard consumer, `DatasetRegistry` wiring, any second dataset.
+
+## Deliverables
+
+`docs/bi/*`, `ADR-018`. Verification: `tsc --noEmit` clean (0 new errors — see `CHANGELOG.md` for the sandbox caveat on how this was confirmed). `npm run build` and the Git Tag/Commit exit criteria were **not** completable from the verification sandbox — see `ROADMAP_STATUS.md` "Current Blockers."
+
+---
+
+# Sprint 5.2 — Dataset Expansion (Status: Planned)
+
+Continues the BI/semantic layer. **Infrastructure is frozen** — no new folder structure, no new contracts, no new generic abstractions. This sprint populates the pattern Sprint 5.0/5.1 already proved, for two more datasets.
+
+**Dependency:** Item 4 below (Executive Portfolio Report) may not begin implementation until Sprint 5.1 is formally Exit-closed (Build Passed + Git Tag Created per its own Exit Criteria — see `ROADMAP_STATUS.md` Version Reconciliation Note). Items 1–3 are not blocked by this.
+
+**Amendment (2026-07-02):** Item 4 was added to this scope on request. Sprint 5.1's own "Out of Scope" list (§ above) explicitly deferred "any Executive Dashboard consumer" — this amendment consciously pulls the first such consumer forward into 5.2, scoped narrowly to a read-only presentation layer over the already-frozen `ExecutivePortfolioService`. It does not reopen `src/bi/` infrastructure and does not implement the exporters still deferred below.
+
+## Priority
+
+1. Executive Portfolio enrichment (fill remaining gaps identified in Sprint 5.1's validation/lineage docs — e.g. seed-data setup-readiness gap, once the seed data owner regenerates it).
+2. Pre-Award Dataset (`BusinessDatasetType.PRE_AWARD`) — one row per Tender, following the exact `ExecutivePortfolioDataset` pattern (DTO → builder → calculators only where real formulas exist → service → filter engine → validator → docs).
+3. Commercial Dataset (`BusinessDatasetType.COMMERCIAL`) — IPC/VO/Claims/NOC/Subcontracts rollups, following the same pattern.
+4. **Executive Portfolio Report (`ExecutivePortfolioReport.tsx`)** — first production UI consumer of `ExecutivePortfolioDataset`/`ExecutivePortfolioService`. Replaces the Sprint 5.1 developer viewer (`src/views/dev/BIPortfolioDatasetViewer.tsx`) as the CEO/PMO/BU-Manager/Portfolio-Manager-facing screen. Presentation layer only — no new calculators, no repository access, no business logic in components. Export buttons (Excel/CSV/JSON/Power BI/REST) are UI-only placeholders; exporters themselves remain Phase 2 per ADR-018 (see Out of Scope below).
+
+## Out of Scope (still deferred to Phase 2 per ADR-018)
+
+Excel Export, REST API, Power BI integration, `DatasetRegistry` wiring. (Item 4 above may render disabled/placeholder buttons for these but must not implement them.)
+
+---
+
 # Sprint 5 — Security & RBAC Foundation
 
 Prepare the platform for enterprise security. **No authentication implementation yet.**
@@ -712,4 +796,6 @@ Recommended sequence (AI/OCR/Notifications first because they deliver immediate 
 7. **Microsoft 365 deep integration**
 
 Reporting was originally planned as a pre-backend Sprint but moved here because real reporting needs PostgreSQL aggregation, query optimization, indexes, and materialized views — not LocalStorage.
+
+**Amended by ADR-018 (Sprint 5.0/5.1):** this item now refers specifically to the **export/consumer layer** — Excel Export, REST API, Power BI integration itself, and `DatasetRegistry` wiring. The underlying **dataset/semantic layer** (`src/bi/`, `ExecutivePortfolioDataset` and its Sprint 5.2 successors) is explicitly out of this Phase-2 deferral — it was proven safe to build pre-backend because it only re-reads the existing on-demand Operational Layer (same pattern as SPR/Dashboards under ADR-011), not a PostgreSQL aggregation. See `docs/adr/ADR-018-bi-foundation-dataset-layer-timing.md`.
 

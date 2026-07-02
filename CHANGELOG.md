@@ -2,9 +2,42 @@
 
 All notable changes to the **ROWAD Enterprise Platform** will be documented in this file.
 
-## [1.5.0] - 2026-07-01
+> **Governance / tagging note (corrected 2026-07-02, supersedes the earlier retroactive-tag plan):** git's actual, sole real tag is `v1.4.0` (commit `7ea5cdd`). This file previously described later increments on that same commit (Sprint 4A.1/4A.4 work) as `[1.4.1]`, `[1.4.2]`, and `[1.5.0]` — none of those were ever separately tagged in git; all of that work shares the single `v1.4.0` tag, and those entries below are relabeled accordingly (no retroactive tag is created). Sprint 5.1 is the next real tag: `v1.5.0`. The following release (Executive Portfolio Report, Sprint 5.2 Item 4) will be `v1.6.0`. See `ROADMAP_STATUS.md` → "Version Reconciliation Note" for the exact commands to run locally; until run, read `v1.5.0` here as a target, not committed history.
 
-Development Sprint: Sprint 4A.4 — Post-Activation Consistency & Portfolio Synchronization (Enterprise Foundation Release).
+## [1.5.0] - 2026-07-02 - Sprint 5.1 — BI Foundation Proof (ExecutivePortfolio Dataset)
+
+Tag target `v1.5.0` (pending — not yet created in git, see governance note above). Architecture remains frozen per the Sprint 5.0 BI Foundation freeze; this sprint only proves the already-approved contracts against real data, per explicit instruction ("Do not add more infrastructure or framework code").
+
+### Added
+- **`src/bi/validation/PortfolioDatasetValidator.ts`** (Phase 6): independently proves `ExecutivePortfolioDataset` correctness — row-count parity with the Operational Layer, no duplicate rows/projectCodes, no missing/untraceable projectIds, monetary normalization cross-checked against `FinancialsCalculator.sumAmounts`, setup readiness parity against `ProjectSetupService.evaluatePolicy()`, and lifecycle/workflow/status parity against `Project`. Dependency-free, like the existing `bi/calculators/*`.
+- **`src/tests/run-bi-portfolio-validation.ts`**: proof script — builds the real dataset from real seed data (via a minimal `localStorage`/`sessionStorage` polyfill needed only because the repositories are browser-shaped) and runs the validator. Captured, unedited output lives in `docs/bi/EXECUTIVE_PORTFOLIO_VALIDATION_REPORT.md`. Result: 3 projects → 3 rows, 7/7 checks passed.
+- **`src/views/dev/BIPortfolioDatasetViewer.tsx`** (Phase 5): temporary developer page — row count, generation time, dataset metadata, live validation report, full dataset table. Reachable via a new, clearly-marked "DEV (TEMPORARY)" Sidebar group (`dev-bi-portfolio`). Not a product feature — remove when the BI layer gains a real consumer.
+- **`docs/bi/`** (Phase 7): `EXECUTIVE_PORTFOLIO_DATASET_SPECIFICATION.md`, `EXECUTIVE_PORTFOLIO_FIELD_DICTIONARY.md`, `EXECUTIVE_PORTFOLIO_DATA_LINEAGE.md`, `EXECUTIVE_PORTFOLIO_DATA_MAPPING_MATRIX.md`, `EXECUTIVE_PORTFOLIO_VALIDATION_REPORT.md`.
+- **`docs/adr/ADR-018-bi-foundation-dataset-layer-timing.md`**: formalizes why the BI dataset/semantic layer was built pre-backend (safe — on-demand, LocalStorage-scale, reuses existing Services/Calculators, same pattern as SPR under ADR-011) while the export/consumer layer (Excel/REST/Power BI) stays deferred to Phase 2 as `Sprint.md` originally planned.
+- **`src/vite-env.d.ts`**: standard Vite client type reference (`/// <reference types="vite/client" />`) — was missing from the project entirely; needed once `import.meta.env.DEV` was introduced (see Changed).
+
+### Changed (Dataset Viewer — CTO ruling, Sprint 5.1 close-out)
+- `src/components/Sidebar.tsx` and `src/App.tsx`: the "DEV (TEMPORARY)" Sidebar group and the `dev-bi-portfolio` route are now gated behind `import.meta.env.DEV`, so the Developer Dataset Viewer is excluded from production builds entirely (dead code, tree-shaken by Vite/Rollup), not merely hidden from navigation. Confirms the CTO's instruction that this page "must never become a business feature."
+
+### Confirmed (no code change — Phases 1-4 were already implemented before this sprint started)
+- `ExecutivePortfolioBuilder`, `ExecutivePortfolioService`, `PortfolioValueCalculator` (+ Progress/Health/Risk calculators), and `PortfolioFilterEngine` were already real, working implementations (not contracts) prior to Sprint 5.1. This sprint's validator/proof run confirms they are correct against live seed data; no changes were needed or made to any of them.
+
+### Data-quality finding (not a code defect)
+- All 3 seed projects (`src/seed/projectSeed.ts`) lack `Project.commercialSettings`, so `setupReadinessScore` is `0` for all of them even though two are already in `Execution` with real IPC/Claim/VO activity. The dataset is correctly surfacing this seed-data gap. See `docs/bi/EXECUTIVE_PORTFOLIO_DATA_LINEAGE.md`.
+
+### Governance / Roadmap Alignment (resolved same day, folded into this release)
+- Fixed the Sprint numbering conflict originally flagged here: removed the erroneous "Sprint 5 — Execution Commercial Modules & Control" entry from `ROADMAP_STATUS.md` (it existed nowhere else and had silently shifted Sprint 5–12 down by one, dropping the Hypercare row); inserted Sprint 4A, Sprint 5.0, Sprint 5.1, and Sprint 5.2 into `Sprint.md` as intercalary sprints (same convention as Sprint 3E / Sprint 3.0.1) ahead of the original Sprint 5 (Security & RBAC), which keeps its number; formalized the BI-vs-Phase-2 timing decision as `docs/adr/ADR-018-bi-foundation-dataset-layer-timing.md`; backfilled `ADR-013`–`ADR-017` into `CLAUDE.md`'s ADR log (all five already existed in `docs/adr/` but were never listed there); corrected `CLAUDE.md` §11, which still hardcoded "Sprint 1 (current)" despite the repo being 5+ sprints past that.
+
+### Technical Debt (logged, not fixed — Sprint 5.1 close-out ruling, 2026-07-02)
+- `tsc --noEmit` surfaces 9 pre-existing errors, confirmed (via `git diff --ignore-all-space` against `HEAD`) to predate Sprint 5.1 and be unrelated to `src/bi/**` — several trace to Sprint 2 (`v1.2.0`). Per explicit ruling, these are **not** fixed under the BI release: fixing them would touch the Tenders, Projects, and Claims modules in a Sprint scoped to BI, violating both "Stay inside Sprint scope" and "One Business Module Per Iteration." Instead they are formally tracked as **TD-001** (`Tender`/`LegacyTender` type divergence), **TD-002** (`AddProject.tsx` enum migration), **TD-003** (`ClaimsPanel.tsx` enum typing), and **TD-004** (`scratch/`/`src/tests/` need their own `tsconfig`/lint pipeline) — full RCA in `docs/technical-debt/TD-2026-07-typescript-debt.md`, tracked in `ROADMAP_STATUS.md` → "Technical Debt Backlog". A dedicated Maintenance Sprint (independent of BI development) will own eliminating this debt.
+
+### Environment notes (this sandbox only, not a code issue)
+- `npm run build` (vite) could not be executed in the verification sandbox: the project's `node_modules` contains Windows-only optional native binaries (`@esbuild/win32-x64`, `@rollup/rollup-win32-x64-msvc`) with no Linux counterpart installed, so `vite build`/`tsx` fail on `esbuild`/`rollup` native module resolution regardless of source correctness. `npx tsc --noEmit` was run successfully instead (see below) and is unaffected by this. Recommend running `npm run build` locally (Windows) to close this Sprint Exit Criterion.
+- Type Check Passed: confirmed via `tsc --noEmit` against a byte-for-byte reconstruction of the changed files (a session-local FUSE mount cache issue prevented in-place edits to `App.tsx`/`Sidebar.tsx`/`src/bi/index.ts` from being visible to the sandboxed shell — the files on disk are correct; the shell's cached view of pre-existing files was stale). Result: Known pre-existing TypeScript Technical Debt (TD-001..TD-004). Sprint 5.1 introduces no new TypeScript errors.
+
+## Sprint 4A.4 — Post-Activation Consistency & Portfolio Synchronization (folded into `v1.4.0` — no separate tag was ever created for this incremental work; see governance note at top of file)
+
+Originally logged in this file as "[1.5.0] - 2026-07-01"; relabeled 2026-07-02 once `v1.5.0` was assigned to Sprint 5.1 instead. This work shipped as part of the same `7ea5cdd` commit as Sprint 4/4A/4A.1 — `v1.4.0` is its real tag.
 
 ### Added
 - **API and Architecture Documentation**: Added `SYSTEM_ARCHITECTURE.md`, `API_SERVICES.md`, `DOMAIN_MODEL.md`, `FOLDER_STRUCTURE.md`, `PROJECT_LIFECYCLE.md`, `PROJECT_SETUP.md`, `PROJECT_ACTIVATION.md`, `CACHE_ARCHITECTURE.md`, `PRESENTATION_SERVICES.md`, `KPI_ENGINE.md`, `DATA_FLOW.md`, `VERSION_MATRIX.md`, and `DEVELOPER_GUIDE.md` under `docs/` and `docs/architecture/` to serve as a complete developer reference manual.

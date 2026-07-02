@@ -14,6 +14,7 @@ import { ProjectControlsService } from './services/ProjectControlsService';
 import { ProjectControlsMapper } from './mappers/ProjectControlsMapper';
 import { OperationsCenterPage } from './features/operations-center';
 import { ProjectsPage } from './views/ProjectsPage';
+import { BIPortfolioDatasetViewer } from './views/dev/BIPortfolioDatasetViewer';
 
 export default function App() {
   const [lang, setLang] = useState<'ar' | 'en'>('ar');
@@ -295,11 +296,17 @@ export default function App() {
               settings={settings} 
             />
           ) : currentView === 'settings' ? (
-            <SettingsView 
+            <SettingsView
               lang={lang}
               settings={settings}
               onUpdateSettings={handleUpdateSettings}
             />
+          ) : currentView === 'dev-bi-portfolio' && import.meta.env.DEV ? (
+            // Sprint 5.1 close-out (CTO ruling): never a business feature —
+            // excluded entirely from production builds, not just hidden from
+            // navigation. `import.meta.env.DEV` is false in `npm run build`
+            // output, so this branch is dead code (and tree-shaken) in prod.
+            <BIPortfolioDatasetViewer />
           ) : (
             <div className="flex items-center justify-center h-full text-gray-400 p-8">
               <div className="text-center max-w-md bg-white p-12 rounded-[32px] shadow-sm border border-gray-100">

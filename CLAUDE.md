@@ -262,17 +262,21 @@ System Administrators → Entire platform
 Read-Only users       → As scoped, no writes
 ```
 
-Permission enforcement happens in `PermissionService`. UI should hide what the user cannot access — not just disable it. Full RBAC implementation is **Sprint 4**.
+Permission enforcement happens in `PermissionService`. UI should hide what the user cannot access — not just disable it. Full RBAC implementation is **Sprint 5** (corrected during the Sprint 5.1 roadmap-alignment pass — this section previously said Sprint 4, which was never correct against `Sprint.md`).
 
 ---
 
 ## 11. Current Sprint — STRICT SCOPE
 
-**Sprint 1 — Production Stabilization.** Work only inside this scope. Anything outside = "Future Sprint Recommendation," not for implementation now.
+**This section's "current sprint" line is updated only at Sprint Exit; `ROADMAP_STATUS.md` is the live, always-current source — check it first every session, this file may lag by up to one Sprint Exit.**
 
-> **Important — Sprint partitioning:** The QA report flags 4 issues as P0, but per the agreed Sprint plan (`Sprint.md`), Sprint 1 = **stabilize what exists**, Sprints 2–3 = **complete missing business workflows**. That moves QA Finding **#25 (Tender → Project Award workflow) to Sprint 2** even though it is P0, because it's not a stability bug — it's a missing workflow. Sprint 1 closes the bugs blocking production use; Sprint 2 builds the Tender/Award/Claims workflow; Sprint 3 completes the Commercial modules (IPC/VO/NOC/Subcontracts + SPR business completion).
+**As of the Sprint 5.1 roadmap-alignment pass: Sprint 5.1 (BI Foundation Proof) has its scope, type-check, and QA done — Build Passed and Git Tag are still pending (need to run locally, see `ROADMAP_STATUS.md`), so it is not yet formally Sprint-Exited. Sprint 5.2 (Dataset Expansion — Pre-Award Dataset, Commercial Dataset) is queued next, pending that close-out.** Work only inside the active Sprint's scope as defined in `Sprint.md`. Anything outside = "Future Sprint Recommendation," not for implementation now.
 
-### Sprint 1 Scope Buckets (from `Sprint.md`)
+The rest of this section (Sprint 1 buckets and the original QA Findings → Sprint Mapping) is kept as a **historical planning snapshot** — it documents how Sprint 1 through Sprint 6 scope was originally partitioned and is still accurate for that partitioning. It does not describe the current sprint. Sprints 1 through 4A, 5.0, and 5.1 are now `✅ Completed` per `ROADMAP_STATUS.md`.
+
+> **Historical note — Sprint partitioning:** The QA report flagged 4 issues as P0, but per the agreed Sprint plan (`Sprint.md`), Sprint 1 = **stabilize what exists**, Sprints 2–3 = **complete missing business workflows**. That moved QA Finding **#25 (Tender → Project Award workflow) to Sprint 2** even though it was P0, because it wasn't a stability bug — it was a missing workflow. Sprint 1 closed the bugs blocking production use; Sprint 2 built the Tender/Award/Claims workflow; Sprint 3 completed the Commercial modules (IPC/VO/NOC/Subcontracts + SPR business completion).
+
+### Sprint 1 Scope Buckets (from `Sprint.md`) — historical
 
 1. **Runtime Stability** — no crashes, white screens, broken navigation, React rendering errors, console runtime errors.
 2. **Dashboard Synchronization** — KPI cards / sidebar counters / portfolio counts update immediately after CRUD. No refresh required.
@@ -323,21 +327,29 @@ Permission enforcement happens in `PermissionService`. UI should hide what the u
 - #64 (Doc Control per-project filtering)
 - Full Reporting & Analytics (requires backend aggregation / materialized views / Power BI)
 
-### Roadmap (for context only)
+### Roadmap (for context only — `Sprint.md` is authoritative for scope, `ROADMAP_STATUS.md` is authoritative for live status)
 
-Sprint 1: Production Stabilization (current)
-Sprint 2: Tender & Award
-Sprint 3: Commercial Modules (IPC + VO + NOC + Subcontracts + SPR business completion)
-Sprint 4: Enterprise System Settings & Policies
-Sprint 5: Security & RBAC Foundation
-Sprint 6: Enterprise UX Polish
-Sprint 7: Backend Preparation (entity freeze, ERD, OpenAPI, sequence diagrams, indexes, migration strategy, Security Review, OWASP, threat model) — triggers Architecture Freeze
-Sprint 8: Backend Core (PostgreSQL + FastAPI + Auth + RBAC + REST + Audit Log + Performance Baseline)
-Sprint 9: Production Infrastructure & File Integrations (deployment, backup, logging, monitoring, caching, health/readiness/liveness, alerting, SharePoint, OneDrive)
-Sprint 10: Data Migration (Pilot → Validation → Department Approval → Full; Excel → ROWAD, the most critical sprint for the business)
-Sprint 11: Go Live (pilot, training, rollout, support, cutover + Rollback Plan + rehearsal)
-Sprint 12: Hypercare (first 30 days post Go Live; bug fixes, monitoring, perf tuning, user feedback → Production Stable)
-Phase 2 (in this order): AI Assistant → OCR → Notifications → Workflow Automation → Power BI / Reporting & Analytics → Mobile → M365 deep integration
+Sprint 1: Production Stabilization — ✅ Completed
+Sprint 2: Tender & Award — ✅ Completed
+Sprint 3: Commercial Modules (IPC + VO + NOC + Subcontracts + SPR business completion) — ✅ Completed
+Sprint 3E: Commercial Domain Consolidation — ✅ Completed
+Sprint 3.0.1: Hotfix (Sprint 3 RC1 release blockers) — ✅ Completed
+Sprint 4: Enterprise System Settings & Policies — ✅ Completed (original Master-Data-FK scope not re-verified — see `Sprint.md` Sprint 4A note)
+Sprint 4A: Project Setup & Activation Foundation & Stabilization — ✅ Completed
+Sprint 5.0: BI Foundation (Architecture & Contracts Freeze) — ✅ Completed
+Sprint 5.1: BI Foundation Proof (ExecutivePortfolioDataset) — ✅ Scope/QA complete, 🔴 Exit pending (Build + Git Tag need to run locally — see `ROADMAP_STATUS.md`)
+Sprint 5.2: Dataset Expansion (Pre-Award Dataset, Commercial Dataset) — 🟡 current
+Sprint 5: Security & RBAC Foundation — ⏳ Planned
+Sprint 6: Enterprise UX Polish — ⏳ Planned
+Sprint 7: Backend Preparation (entity freeze, ERD, OpenAPI, sequence diagrams, indexes, migration strategy, Security Review, OWASP, threat model) — triggers Architecture Freeze — ⏳ Planned
+Sprint 8: Backend Core (PostgreSQL + FastAPI + Auth + RBAC + REST + Audit Log + Performance Baseline) — ⏳ Planned
+Sprint 9: Production Infrastructure & File Integrations (deployment, backup, logging, monitoring, caching, health/readiness/liveness, alerting, SharePoint, OneDrive) — ⏳ Planned
+Sprint 10: Data Migration (Pilot → Validation → Department Approval → Full; Excel → ROWAD, the most critical sprint for the business) — ⏳ Planned
+Sprint 11: Go Live (pilot, training, rollout, support, cutover + Rollback Plan + rehearsal) — ⏳ Planned
+Sprint 12: Hypercare (first 30 days post Go Live; bug fixes, monitoring, perf tuning, user feedback → Production Stable) — ⏳ Planned
+Phase 2 (in this order): AI Assistant → OCR → Notifications → Workflow Automation → Power BI / Reporting & Analytics (export/consumer layer only — dataset/semantic layer moved earlier per ADR-018) → Mobile → M365 deep integration
+
+Note: Sprint 5.0/5.1/5.2 sit **before** Sprint 5 (Security & RBAC) in execution order despite the shared "5" prefix — they're intercalary sprints (same convention as Sprint 3E / Sprint 3.0.1), not a renumbering of Sprint 5 onward. Sprint 5 through Sprint 12 keep their original numbers.
 
 Full Sprint plan with scope/out-of-scope per sprint lives in `Sprint.md` (root of repo). Live execution status lives in `ROADMAP_STATUS.md`.
 
@@ -441,6 +453,12 @@ Architecture Decision Records live in `docs/adr/`. Each ADR captures the **why**
 **Currently formalized:**
 - `ADR-011` — Generated Reports Strategy (Reports Never Own Data; SPR/Dashboards/KPIs computed dynamically via `CalculationService`).
 - `ADR-012` — Canonical Award Workflow (TenderAwardService acts as application orchestration boundary for Tender to Project award, separate from generic status transitions).
+- `ADR-013` — Project Commercial Baseline Model Consolidation (Sprint 3E: single source of truth for `signedContractValue` / `approvedVariationTotal` / `revisedContractValue`, removed legacy `contractValue`/`originalContractValue`).
+- `ADR-014` — Separation of Lifecycle, Workflow, and Status on the Project Aggregate (Sprint 4A.1: confirms `lifecycleStage`/`workflowState`/`status` answer different questions, no overlap).
+- `ADR-015` — Repository Callback Invalidation Architecture (Sprint 4A.4: `ProjectRepository.onSaveCallback` avoids circular dependency while keeping `ProjectLookupService`'s cache fresh).
+- `ADR-016` — Centralized Presentation Mappers & Reusable Badges (Sprint 4A.4: single source for status/workflow/lifecycle styling + translation, replacing per-component duplication).
+- `ADR-017` — Setup Draft Hydration Strategy (Sprint 4A.1 hotfix: reopening Setup Center after activation hydrates from the aggregate's own fields when the transient draft was already cleaned up).
+- `ADR-018` — BI Foundation / Executive Semantic Layer Timing (Sprint 5.0/5.1: dataset/semantic layer proven pre-backend on LocalStorage; export/consumer layer — Excel/REST/Power BI — stays in Phase 2 as originally planned).
 
 **Decisions that exist in practice but should be backfilled as formal ADRs** (Future Sprint task — currently captured in this file and in `docs/ai/PROJECT_BOOK.md`):
 
@@ -477,6 +495,8 @@ Living docs that are the source of truth for architecture/business rules:
 - `CTO-Implementation-Roadmap.md`, `CTO-Final-Certification-Review.md`, `CTO-Frontend-Readiness-Review.md`
 - `BACKEND-READINESS-FIX-PROMPT.md` — backend prep notes
 - `CHANGELOG.md`
+- `docs/releases/VERSION_MATRIX.md` — release history index + per-version feature/architecture/migration notes
+- `docs/bi/` — BI/Executive Semantic Layer docs (Dataset Specification, Field Dictionary, Data Lineage, Data Mapping Matrix, Validation Report) — starts with `ExecutivePortfolioDataset` (Sprint 5.0/5.1)
 - `Sprint.md` — full Sprint Roadmap (scope/out-of-scope per Sprint, Exit Criteria, Definition of Done, Architecture Freeze Policy)
 - `ROADMAP_STATUS.md` — **live** execution status (per-Sprint progress, current version, last tag, blockers, open decisions, risks). Update at every Sprint Exit.
 
