@@ -9,38 +9,22 @@
 
 | Field | Value |
 |-------|-------|
-| **Current Product Version** | `v1.5.0` (target — **tag not yet created**, see Version Reconciliation Note below) |
-| **Current Development Sprint** | Sprint 5.2 — Dataset Expansion (Pre-Award Dataset, Commercial Dataset, Executive Portfolio Report) — starting. Item 4 (Executive Portfolio Report) is 🔴 blocked on Sprint 5.1 formal Exit (Build Passed + Git Tag — see Version Reconciliation Note). Item 4 itself will ship as `v1.6.0`. |
-| **Last Completed Product Version** | `v1.4.0` (real, in git) — Sprint 4A, Enterprise Foundation |
-| **Last Completed Development Sprint** | Sprint 5.1 — BI Foundation Proof (ExecutivePortfolioDataset) — scope/QA complete, tag pending (this is the sprint becoming `v1.5.0`) |
-| **Latest Git Tag (real, in git)** | `v1.4.0` |
-| **Last Updated** | 2026-07-02 — versioning correction: no retroactive tag is created for `v1.4.0`'s commit. `v1.4.0` stands as-is as the real, sole tag covering Sprint 4/4A/4A.1/4A.4's accumulated work. Sprint 5.1 becomes the next real tag, `v1.5.0`. The following release (Executive Portfolio Report, Sprint 5.2 Item 4) becomes `v1.6.0`. |
+| **Current Product Version** | `v1.5.0` (real, in git — commit `2d0d9b2`) |
+| **Current Development Sprint** | Sprint 5.2 — Dataset Expansion (Pre-Award Dataset, Commercial Dataset, Executive Portfolio Report). Item 4 (Executive Portfolio Report) is now unblocked — targets `v1.6.0`. |
+| **Last Completed Product Version** | `v1.5.0` — Sprint 5.1, BI Foundation Proof |
+| **Last Completed Development Sprint** | Sprint 5.1 — BI Foundation Proof (ExecutivePortfolioDataset) — ✅ Closed, all 9 Exit Criteria passed |
+| **Latest Git Tag (real, in git)** | `v1.5.0` (commit `2d0d9b2`) |
+| **Last Updated** | 2026-07-02 — Sprint 5.1 formally closed: scoped commit `2d0d9b2` (52 files, BI-only), `npm run lint` confirmed zero new errors (TD-001..004 pre-existing only), `npm run build` clean, tagged and pushed as `v1.5.0`. See "Version Reconciliation Note" below for how a stale `v1.5.0` tag (mistakenly pointing at the old `7ea5cdd` commit, from an earlier abandoned retroactive-tag attempt) was caught and corrected before push. |
 
 ---
 
-## Version Reconciliation Note (Sprint 5.1 close-out)
+## Version Reconciliation Note (Sprint 5.1 close-out — RESOLVED 2026-07-02)
 
-Git's real, currently-existing tag is `v1.4.0` (commit `7ea5cdd`, "complete Sprint 4A Enterprise Foundation release"). `CHANGELOG.md` had, at various points, described increments on top of that same commit's content (Sprint 4A.1/4A.4 work) as `v1.4.1`, `v1.4.2`, and `v1.5.0` — none of which were ever actually tagged in git; all of that work shares the single real `v1.4.0` tag.
+**Resolution:** No retroactive tag was created on `7ea5cdd` (Sprint 4/4A/4A.1/4A.4's commit — it keeps its original, sole real tag `v1.4.0`, unchanged). Sprint 5.1's own work was committed separately as `2d0d9b2` (`feat(bi): Sprint 5.1 - ExecutivePortfolioDataset proof...`), verified (`npm run lint`: TD-001..004 only, no new errors; `npm run build`: clean), and tagged `v1.5.0`.
 
-**Corrected decision (2026-07-02, supersedes the earlier retroactive-tag plan):** No retroactive tag is created. `v1.4.0` remains exactly what it is in git today — the sole tag for all Sprint 4/4A/4A.1/4A.4 work. `CHANGELOG.md`'s `[1.4.1]`/`[1.4.2]`/old-`[1.5.0]` entries are relabeled as folded into `v1.4.0` (no separate tags ever existed for them). Sprint 5.1's own commit becomes the next real tag, `v1.5.0`. The Executive Portfolio Report (Sprint 5.2 Item 4, the next release after this) becomes `v1.6.0`. Versioning for Sprint 5.2 Items 1–3 (Pre-Award/Commercial Datasets) and Sprint 5 (RBAC) onward is not yet decided — do not assume the previously-listed `v1.7.0`/`v2.x` placeholders elsewhere in this file are final; treat them as provisional until each Sprint starts.
+**Caught during close-out:** a `v1.5.0` tag already existed locally *and on the remote*, pointing at `7ea5cdd` — a leftover from an earlier, since-superseded retroactive-tagging attempt (the very first close-out script drafted in this session, before the versioning correction). It was deleted (`git tag -d v1.5.0`, `git push origin :refs/tags/v1.5.0`) and recreated pinned explicitly to `2d0d9b2` (`git tag -a v1.5.0 2d0d9b2 -m ...`) before the final push. Confirmed via `git show v1.5.0` pointing to `2d0d9b2` post-fix. Lesson for future Sprint Exits: always verify an existing tag's target commit before assuming a `git tag` command will succeed as a fresh tag — check with `git show <tag> --no-patch --format="%H %s"` first if there's any prior history of tagging attempts on that version number.
 
-**This sandbox cannot create git tags or commit** (`.git/index.lock` is a stale lock this environment's FUSE mount cannot delete/recreate — confirmed, not just asserted). Run locally to close this out:
-
-```
-git add src/bi src/views/dev src/tests/run-bi-portfolio-validation.ts src/vite-env.d.ts src/App.tsx src/components/Sidebar.tsx docs/bi docs/adr/ADR-018-bi-foundation-dataset-layer-timing.md docs/technical-debt/TD-2026-07-typescript-debt.md CHANGELOG.md ROADMAP_STATUS.md CLAUDE.md Sprint.md docs/releases/VERSION_MATRIX.md
-
-npm run lint    # Known pre-existing TypeScript Technical Debt (TD-001..TD-004). Sprint 5.1 introduces no new TypeScript errors.
-npm run build   # must be clean
-
-git commit -m "feat(bi): Sprint 5.1 — ExecutivePortfolioDataset proof (validator, dev viewer, docs) + TD backlog for pre-existing TS debt (TD-001..004)"
-git tag -a v1.5.0 -m "Sprint 5.1: BI Foundation Proof (ExecutivePortfolioDataset)"
-git push origin main
-git push origin v1.5.0
-```
-
-Order matters: the tag must be created *after* the commit (an annotated `git tag` with no ref argument points at current `HEAD` — tagging before committing would incorrectly point `v1.5.0` at `v1.4.0`'s commit).
-
-Until this is run, treat `v1.5.0`/`v1.6.0` everywhere in this file and `CHANGELOG.md` as **targets**, not facts.
+The next release, Executive Portfolio Report (Sprint 5.2 Item 4), targets `v1.6.0`. Versioning for Sprint 5.2 Items 1–3 (Pre-Award/Commercial Datasets) and Sprint 5 (RBAC) onward is not yet decided — treat the placeholders elsewhere in this file as provisional until each Sprint starts.
 
 ---
 
@@ -57,8 +41,8 @@ Until this is run, treat `v1.5.0`/`v1.6.0` everywhere in this file and `CHANGELO
 | Sprint 4 | Enterprise System Settings & Policies | ✅ Completed* | 100% | `v1.4.0` |
 | Sprint 4A | Project Setup & Activation Foundation & Stabilization | ✅ Completed | 100% | `v1.4.0` (real — no separate/retroactive tag; folds in 4A.1/4A.4 work per 2026-07-02 versioning correction) |
 | Sprint 5.0 | BI Foundation (Architecture & Contracts Freeze) | ✅ Completed | 100% | bundled into `v1.5.0` (target — Sprint 5.1's tag) |
-| Sprint 5.1 | BI Foundation Proof (ExecutivePortfolioDataset) | ✅ Closing — 🔴 Build + Tag Pending | 100% scope / Exit Criteria 8/9 | `v1.5.0` (target). **2026-07-02 ruling:** Exit Criterion #2 (Type Check) is closed with 9 pre-existing `tsc` errors formally logged as Technical Debt — TD-001..TD-004 (see § below and `docs/technical-debt/TD-2026-07-typescript-debt.md`) rather than fixed here — confirmed unrelated to `src/bi/**` (all predate Sprint 5.1, several trace to Sprint 2 `v1.2.0`). Sprint 5.1 introduces no new TypeScript errors. Not silently waived: tracked, prioritized, owned, deferred to a dedicated Maintenance Sprint. Build Passed + Git Tag Created still require the local commands in the Version Reconciliation Note (this sandbox cannot write `.git/index.lock` — confirmed blocked, see below), using the **strictly scoped commit** (BI files only — no `scratch/`, no CRLF-only files, no unrelated Tender/Project/Claims module changes). |
-| Sprint 5.2 | Dataset Expansion (Pre-Award Dataset, Commercial Dataset, Executive Portfolio Report) | 🟡 In Progress — Item 4 🔴 blocked on Sprint 5.1 Exit | 0% | Item 4 (Executive Portfolio Report) → `v1.6.0`. Items 1–3 (Pre-Award/Commercial Datasets) versioning not yet decided. |
+| Sprint 5.1 | BI Foundation Proof (ExecutivePortfolioDataset) | ✅ Completed | 100% / Exit Criteria 9/9 | `v1.5.0` (commit `2d0d9b2`). **2026-07-02 ruling:** Exit Criterion #2 (Type Check) closed with 9 pre-existing `tsc` errors formally logged as Technical Debt — TD-001..TD-004 (see § below and `docs/technical-debt/TD-2026-07-typescript-debt.md`) — confirmed unrelated to `src/bi/**`, no new errors introduced. Scoped commit (52 files, BI-only — no `scratch/`, no CRLF-only files, no unrelated Tender/Project/Claims module changes), lint clean-of-new-errors, build clean, tagged `v1.5.0`, pushed. |
+| Sprint 5.2 | Dataset Expansion (Pre-Award Dataset, Commercial Dataset, Executive Portfolio Report) | 🟡 In Progress — Item 4 unblocked | 0% | Item 4 (Executive Portfolio Report) → `v1.6.0`. Items 1–3 (Pre-Award/Commercial Datasets) versioning not yet decided. |
 | Sprint 5 | Security & RBAC Foundation | ⏳ Planned | 0% | _pending — not yet decided, see Version Reconciliation Note_ |
 | Sprint 6 | Enterprise UX Polish | ⏳ Planned | 0% | _pending — not yet decided_ |
 | Sprint 7 | Backend Preparation (triggers Architecture Freeze) | ⏳ Planned | 0% | _pending — not yet decided_ |
@@ -173,14 +157,14 @@ Opened 2026-07-02 during Sprint 5.1 close-out. Full detail (root cause, impact, 
 | 3 | Phase 6 — Dataset Validation | BI Layer | ✅ Completed | `src/bi/validation/PortfolioDatasetValidator.ts` — 7 independent checks, all passing against real seed data (3 projects → 3 rows). |
 | 4 | Phase 7 — Documentation | Documentation | ✅ Completed | `docs/bi/` — Specification, Field Dictionary, Data Lineage, Data Mapping Matrix, Validation Report. |
 | 5 | Type Check | Exit | ✅ Completed | Known pre-existing TypeScript Technical Debt (TD-001..TD-004, see `docs/technical-debt/TD-2026-07-typescript-debt.md`). Sprint 5.1 introduces no new TypeScript errors. See CHANGELOG for the sandbox caveat on how this was verified. |
-| 6 | Build Check | Exit | 🔴 Not verified | `npm run build` could not run in the verification sandbox (Windows-only native `esbuild`/`rollup` binaries in `node_modules`, no Linux counterpart). Needs to be run locally before this Sprint can be marked exited. |
-| 7 | Git Commit / Tag | Exit | 🔴 Not done | Sandbox could not acquire `.git/index.lock` (permission denied) — no commit was attempted from this session. `src/bi/` itself was still untracked in git before this sprint began. Needs a real commit + tag decision (see OD-004) from a normal dev environment. |
+| 6 | Build Check | Exit | ✅ Completed | `npm run build` run locally: clean, `dist/` produced (2392 modules, one non-blocking chunk-size advisory only). |
+| 7 | Git Commit / Tag | Exit | ✅ Completed | Scoped commit `2d0d9b2` (52 files, BI-only), pushed to `main`. Tagged `v1.5.0` (pinned to `2d0d9b2` — see "Version Reconciliation Note" for the stale-tag catch during this step) and pushed. |
+
+**Sprint 5.1 status: ✅ Closed — all 9 Exit Criteria passed (2026-07-02).**
 
 ## Current Blockers
 
-* **Sprint 5.1 build verification** — `npm run build` unverified in this environment; run locally to close Sprint Exit Criterion #3 (Build Passed) for the BI Foundation Proof work above.
-* **Sprint 5.1 / repository-maintenance git operations** — see "Version Reconciliation Note" above for the exact commands (scoped commit of Sprint 5.1's BI files only, then tag `v1.5.0`). None of this could run from the sandbox.
-* **~24 unrelated files already modified-but-uncommitted** in the working tree before this session started (MasterData, Tender, ClaimsPanel, IPCsPanel, NOCsPanel, SubcontractorsPanel, VOsPanel, several repositories, etc.) — not touched by this session, but worth a deliberate review before any of it gets swept into a commit, since CLAUDE.md §14's "One Business Module Per Iteration" rule assumes each module is committed before the next begins, and this much uncommitted cross-module state means that rule has not been followed in practice recently.
+* **~24 unrelated files already modified-but-uncommitted** in the working tree before Sprint 5.1's session started (MasterData, Tender, ClaimsPanel, IPCsPanel, NOCsPanel, SubcontractorsPanel, VOsPanel, several repositories, etc.) — deliberately excluded from the Sprint 5.1 commit, still uncommitted. Worth a deliberate review before any of it gets swept into a future commit, since CLAUDE.md §14's "One Business Module Per Iteration" rule assumes each module is committed before the next begins, and this much uncommitted cross-module state means that rule has not been followed in practice recently. Related: TD-001/TD-002/TD-003 (see Technical Debt Backlog) live inside this same uncommitted/pre-existing state.
 
 ---
 

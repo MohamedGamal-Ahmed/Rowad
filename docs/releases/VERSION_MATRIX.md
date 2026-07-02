@@ -18,7 +18,7 @@ This document tracks major releases, functional changes, structural adjustments,
 | **v1.3.0** | Sprint 3 — Commercial Modules | 2026-06-30 | Released | IPC engine, VO, NOC, Subcontracts, SPR business completion | `v1.3.0` |
 | **v1.3.1** | Sprint 3.0.1 — Hotfix | 2026-07-01 | Released | RC1 release-blocker fixes (IPC/NOC validation), shared UI Dialog System | `v1.3.1` |
 | **v1.4.0** | Sprint 4A + 4A.1 + 4A.4 — Project Setup & Activation Foundation, Stabilization, Portfolio Sync | 2026-07-01 | Released | Setup Wizard → Setup Center, Activation Policy, cache invalidation (`ADR-015`), presentation mappers (`ADR-016`), Setup Wizard white-screen fix, Award Dialog portal fix, Setup Draft hydration (`ADR-017`), dynamic KPI/contract-value calc | `v1.4.0` (single tag — no separate 4A.1/4A.4 tag was ever created; folded in per 2026-07-02 versioning correction) |
-| **v1.5.0** | Sprint 5.0/5.1 — BI Foundation & Proof (ExecutivePortfolioDataset) | 2026-07-02 | **Current (target)** — tag pending | Executive Semantic Layer (`src/bi/`), `ExecutivePortfolioDataset` proven end-to-end (7/7 validation checks), Developer Dataset Viewer, `ADR-018`, TD-001..004 technical debt logged | _pending_ |
+| **v1.5.0** | Sprint 5.0/5.1 — BI Foundation & Proof (ExecutivePortfolioDataset) | 2026-07-02 | **Released (Current)** | Executive Semantic Layer (`src/bi/`), `ExecutivePortfolioDataset` proven end-to-end (7/7 validation checks), Developer Dataset Viewer, `ADR-018`, TD-001..004 technical debt logged | `v1.5.0` (commit `2d0d9b2`) |
 
 ---
 
@@ -64,7 +64,7 @@ This document tracks major releases, functional changes, structural adjustments,
 - **Database / Schema Changes**: Added `pmo_projects_setup_drafts` database key. Added `lifecycleStage` property on projects list.
 - **Migration Required**: Project setups hydrated dynamically from aggregate fields if draft is missing.
 
-### 2.7 Version v1.5.0 (Current, target — tag pending)
+### 2.7 Version v1.5.0 (Current, Released — commit `2d0d9b2`)
 - **Major Features**: `src/bi/` — Executive Semantic Layer. `ExecutivePortfolioDataset`: one row per Project, combining Tender-to-Award lineage, Setup progress, Commercial values (normalized via `FinancialsCalculator`), and Execution Summary counts/rollups. `PortfolioDatasetValidator` independently proves the dataset (7 checks — row-count parity, no duplicates, monetary normalization, setup-readiness parity, lifecycle parity). Temporary Developer Dataset Viewer at Sidebar → "DEV (TEMPORARY)".
 - **Architectural Changes**: New `src/bi/` module — `core` (dataset/registry/metadata contracts), `dto`, `datasets`, `calculators` (Value/Progress/Health/Risk), `builders`, `filters`, `services`, `exporters` (contracts only — throwing stubs), `validation`. No UI dependency inside `src/bi`; only `ProjectLookupService`/`ProjectSetupService` (existing services) are read, never a Repository directly. See `docs/bi/EXECUTIVE_PORTFOLIO_DATASET_SPECIFICATION.md` and `docs/adr/ADR-018-bi-foundation-dataset-layer-timing.md`.
 - **Breaking Changes**: None. Fully additive — no existing Entity/DTO/Repository/API changed.
